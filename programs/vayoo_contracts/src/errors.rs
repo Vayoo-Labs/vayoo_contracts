@@ -4,6 +4,8 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("You are not authorized to perform this action.")]
     Unauthorized,
+    #[msg("InvalidInstruction")]
+    Invalid,
     #[msg("The config has already been initialized.")]
     ReInitialize,
     #[msg("The config has not been initialized.")]
@@ -18,4 +20,12 @@ pub enum ErrorCode {
     PythOffline,
     #[msg("Program should not try to serialize a price account.")]
     TryToSerializePriceAccount,
+    #[msg("Contract has Ended Already")]
+    ContractEnded,
+    #[msg("Contract has been halted for trading and depositing")]
+    ContractHalted,
+    #[msg("Contract has been halted for depositing")]
+    ContractDepositHalted,
+    #[msg("Contract has been halted for trading")]
+    ContractTradingHalted,
 }

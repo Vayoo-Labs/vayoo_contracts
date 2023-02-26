@@ -13,7 +13,7 @@ pub struct ContractState {
     pub is_halted_deposit:bool, //1
     pub is_halted_trading:bool, //1
 
-    pub usdc_mint: Pubkey,       // 32
+    pub collateral_mint: Pubkey,       // 32
     pub underlying_mint: Pubkey, // 32
     pub pyth_feed_id: Pubkey, //32
 

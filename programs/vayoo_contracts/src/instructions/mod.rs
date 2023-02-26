@@ -6,3 +6,6 @@ pub use init_user_account::*;
 
 pub mod deposit_collateral;
 pub use deposit_collateral::*;
+
+pub mod withdraw_collateral;
+pub use withdraw_collateral::*;

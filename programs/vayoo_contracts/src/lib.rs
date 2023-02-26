@@ -6,9 +6,11 @@ pub mod constants;
 pub mod instructions;
 pub mod states;
 pub mod errors;
+pub mod utils;
 
 // crates
 use crate::instructions::*;
+use crate::utils::*;
 
 declare_id!("6ccnZSaDcMwKe1xwHbubs4q2GdPEr7hSK59A3GddJpte");
 
@@ -35,9 +37,10 @@ pub mod vayoo_contracts {
     pub fn initialize_contract(
         ctx: Context<InitializeContract>,
         contract_name: String,
-        bump: u8
+        bump: u8,
+        ending_time: i64
     ) -> Result<()> {
-        initialize_contract::handle(ctx, contract_name, bump)
+        initialize_contract::handle(ctx, contract_name, bump, ending_time)
     }
 
     /**
@@ -47,6 +50,7 @@ pub mod vayoo_contracts {
      * 
      * One state per contract
      */
+    #[access_control(unrestricted_trading_phase(&ctx.accounts.contract_state))]
     pub fn initialize_user(
         ctx: Context<InitUser>,
         bump: u8
@@ -55,12 +59,23 @@ pub mod vayoo_contracts {
     }
 
     /**
-     * Deposit Collateral (USDC) into user acccount
+     * Deposit Collateral (USDC) from user -> vault
      */
+    #[access_control(unrestricted_deposit_phase(&ctx.accounts.contract_state))]
     pub fn deposit_collateral(
         ctx: Context<DepositCollateral>,
         amount: u64
     ) -> Result<()> {
         deposit_collateral::handle(ctx, amount)
+    }
+
+    /**
+     * Withdraw Collateral (USDC) from vault -> user 
+     */
+    pub fn withdraw_collateral(
+        ctx: Context<WithdrawCollateral>,
+        amount: u64
+    ) -> Result<()> {
+        withdraw_collateral::handle(ctx, amount)
     }
 }

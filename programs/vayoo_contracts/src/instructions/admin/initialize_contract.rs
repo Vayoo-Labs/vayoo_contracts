@@ -11,6 +11,7 @@ pub fn handle(
     ctx: Context<InitializeContract>,
     contract_name: String,
     bump: u8,
+    ending_time: i64
 ) -> Result<()> {
     //[Medium] Initialize mint of the token
     msg!("INITIALIZING WEEKLY CONTRACT");
@@ -24,6 +25,7 @@ pub fn handle(
     contract_state.bump = bump;
     contract_state.is_halted = false;
     contract_state.underlying_mint = ctx.accounts.underlying_mint.key();
+    contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
 
     //Get price from pyth and write it in the account
     contract_state.pyth_feed_id = ctx.accounts.pyth_feed.key();
@@ -34,6 +36,7 @@ pub fn handle(
 
     //Initialize other stuff
     contract_state.contract_starting_time = current_timestamp;
+    contract_state.contract_ending_time = ending_time;
     Ok(())
 }
 
@@ -52,6 +55,7 @@ pub struct InitializeContract<'info> {
     )]
     pub contract_state: Box<Account<'info, ContractState>>,
     pub underlying_mint: Box<Account<'info, Mint>>,
+    pub collateral_mint: Box<Account<'info, Mint>>,
     pub pyth_feed: Account<'info, PriceFeed>,
 
     // Programs and Sysvars

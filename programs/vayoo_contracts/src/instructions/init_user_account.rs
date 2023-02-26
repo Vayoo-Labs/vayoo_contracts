@@ -7,14 +7,16 @@ use crate::states::contract_state::ContractState;
 use crate::states::user_state::UserState;
 
 
-pub fn handle(ctx: Context<InitUser>, _bump: u8) -> Result<()> {
+pub fn handle(ctx: Context<InitUser>, bump: u8) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
 
+    user_state.bump = bump;
     user_state.usdc_deposited = 0;
     user_state.usdc_withdrawn = 0;
     user_state.ishalted = false;
     user_state.issettled = false;
     user_state.authority = ctx.accounts.user_authority.key();
+    user_state.contract_account = ctx.accounts.contract_state.key();
   
     Ok(())
   }
