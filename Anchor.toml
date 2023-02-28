@@ -2,6 +2,23 @@
 [test.validator]
 url = "https://api.metaplex.solana.com/"
 
+# Whirlpool Program
+[[test.validator.clone]]
+address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+program = "local_deploy/whirlpool.so"
+
+# Whirlpool Config
+[[test.validator.clone]]
+address = "2LecshUwdy9xi7meFgHtFJQNSKk4KdTrcpvaB56dP2NQ"
+
+# Whirlpool Fee Tier 64
+[[test.validator.clone]]
+address = "HT55NVGVTjWmWLjV7BrSMPVZ7ppU8T2xE5nCAZ6YaGad"
+
+# Whirlpool Fee Tier 128
+[[test.validator.clone]]
+address = "BGnhGXT9CCt5WYS23zg9sqsAT2MGXkq7VSwch9pML82W"
+
 # Pyth Btc Price Feed
 [[test.validator.clone]]
 address = "GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU"

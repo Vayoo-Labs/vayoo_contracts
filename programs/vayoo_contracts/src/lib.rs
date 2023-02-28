@@ -3,9 +3,9 @@ use anchor_lang::prelude::*;
 
 //local imports
 pub mod constants;
+pub mod errors;
 pub mod instructions;
 pub mod states;
-pub mod errors;
 pub mod utils;
 
 // crates
@@ -38,23 +38,20 @@ pub mod vayoo_contracts {
         ctx: Context<InitializeContract>,
         contract_name: String,
         bump: u8,
-        ending_time: i64
+        ending_time: i64,
     ) -> Result<()> {
         initialize_contract::handle(ctx, contract_name, bump, ending_time)
     }
 
     /**
      * Initialize the User State Account for the contract
-     * 
-     * Should only be called by the user whose state is getting initialised 
-     * 
+     *
+     * Should only be called by the user whose state is getting initialised
+     *
      * One state per contract
      */
     #[access_control(unrestricted_trading_phase(&ctx.accounts.contract_state))]
-    pub fn initialize_user(
-        ctx: Context<InitUser>,
-        bump: u8
-    ) -> Result<()> {
+    pub fn initialize_user(ctx: Context<InitUser>, bump: u8) -> Result<()> {
         init_user_account::handle(ctx, bump)
     }
 
@@ -62,20 +59,28 @@ pub mod vayoo_contracts {
      * Deposit Collateral (USDC) from user -> vault
      */
     #[access_control(unrestricted_deposit_phase(&ctx.accounts.contract_state))]
-    pub fn deposit_collateral(
-        ctx: Context<DepositCollateral>,
-        amount: u64
-    ) -> Result<()> {
+    pub fn deposit_collateral(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
         deposit_collateral::handle(ctx, amount)
     }
 
     /**
-     * Withdraw Collateral (USDC) from vault -> user 
+     * Withdraw Collateral (USDC) from vault -> user
      */
-    pub fn withdraw_collateral(
-        ctx: Context<WithdrawCollateral>,
-        amount: u64
-    ) -> Result<()> {
+    pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
         withdraw_collateral::handle(ctx, amount)
+    }
+
+    /**
+     * Long Contract
+     */
+    pub fn long_user(
+        ctx: Context<LongUser>,
+        amount: u64,
+        other_amount_threshold: u64,
+        sqrt_price_limit: u128,
+        amount_specified_is_input: bool,
+        a_to_b: bool,
+    ) -> Result<()> {
+        long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
     }
 }
