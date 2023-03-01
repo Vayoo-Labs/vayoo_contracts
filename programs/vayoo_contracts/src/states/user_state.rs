@@ -3,20 +3,28 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default)]
 pub struct UserState {
-    pub contract_account: Pubkey, // 32
-    pub bump: u8,                // 1
-    pub authority: Pubkey,   // 32
+    pub contract_account: Pubkey,
+    pub bump: u8,                
+    pub authority: Pubkey,  
 
     pub ishalted: bool,
     pub issettled: bool,
 
-    pub underlying_position_net: i64,
-    pub usdc_collateral_locked: u64,
+    pub contract_position_net: i64,
+    pub usdc_collateral_locked_total: u64,
 
-    pub private_locked_collateral_usdc_addy: Pubkey,
-    pub private_restroom_usdc_usdc: Pubkey,
-    pub private_locked_short_underlying: Pubkey,
-    pub private_locked_long_underlying: Pubkey,
+    pub usdc_collateral_locked_as_mm: u64,
+    pub lcontract_minted_as_mm: u64,
+
+    pub lcontract_bought_as_user:u64,
+    pub scontract_sold_as_user:u64,
+    pub usdc_collateral_locked_as_user: u64,
+    pub usdc_collateral_spent_as_user: u64,
+
+    pub private_locked_usdc_ata: Pubkey,
+    pub private_free_usdc_ata: Pubkey,
+    pub private_locked_scontract_ata: Pubkey,
+    pub private_locked_lcontract_ata: Pubkey,
 
     pub usdc_deposited: u64,
     pub usdc_withdrawn: u64,

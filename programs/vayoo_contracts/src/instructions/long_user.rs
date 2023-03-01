@@ -1,27 +1,44 @@
-//libraries
-// use anchor_lang::prelude::*;
-// use anchor_spl::token::{self, Token, TokenAccount};
-// use whirlpools::program::Whirlpool as WhirlpoolProgram;
-// use whirlpools::{Whirlpool, TickArray};
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{self, Token, Mint, TokenAccount}, associated_token::{AssociatedToken}};
+use anchor_spl::token::{self, Token, TokenAccount};
 use whirlpools::{self, state::*};
+
+use crate::{errors::ErrorCode, states::UserState};
+use crate::states::ContractState;
 
 pub fn handle(ctx: Context<LongUser>, amount: u64,
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
     amount_specified_is_input: bool,
     a_to_b: bool) -> Result<()> {
+
+    let token_account_a; 
+    let token_account_b;
+
+    let user_state = &ctx.accounts.user_state;
+  
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        user_state.contract_account.as_ref(),
+        user_state.authority.as_ref(),
+        &[user_state.bump],
+    ]];
     
+    // This check is necessary, since orca uses cardinal ordering for the mints, and the pool can be either A/B or B/A
+    if ctx.accounts.vault_free_collateral_ata.mint == ctx.accounts.token_vault_a.mint {
+      token_account_a = &ctx.accounts.vault_free_collateral_ata;
+      token_account_b = &ctx.accounts.vault_lcontract_ata;
+    } else {
+      token_account_a = &ctx.accounts.vault_lcontract_ata;
+      token_account_b = &ctx.accounts.vault_free_collateral_ata;
+    }
     let cpi_program = ctx.accounts.whirlpool_program.to_account_info();
   
     let cpi_accounts = whirlpools::cpi::accounts::Swap {
       whirlpool: ctx.accounts.whirlpool.to_account_info(),
       token_program: ctx.accounts.token_program.to_account_info(),
-      token_authority: ctx.accounts.token_authority.to_account_info(),
-      token_owner_account_a: ctx.accounts.token_owner_account_a.to_account_info(),
+      token_authority: ctx.accounts.user_state.to_account_info(),
+      token_owner_account_a: token_account_a.to_account_info(),
       token_vault_a: ctx.accounts.token_vault_a.to_account_info(),
-      token_owner_account_b: ctx.accounts.token_owner_account_b.to_account_info(),
+      token_owner_account_b: token_account_b.to_account_info(),
       token_vault_b: ctx.accounts.token_vault_b.to_account_info(),
       tick_array0: ctx.accounts.tick_array_0.to_account_info(),
       tick_array1: ctx.accounts.tick_array_1.to_account_info(),
@@ -29,9 +46,7 @@ pub fn handle(ctx: Context<LongUser>, amount: u64,
       oracle: ctx.accounts.oracle.to_account_info(),
     };
 
-
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
 
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
@@ -49,21 +64,47 @@ pub fn handle(ctx: Context<LongUser>, amount: u64,
 
 #[derive(Accounts)]
 pub struct LongUser<'info> {
-  pub whirlpool_program: Program<'info, whirlpools::program::Whirlpool>,
-
   #[account(mut)]
-  pub token_authority: Signer<'info>,
+    pub user_authority: Signer<'info>,
+    #[account[
+        mut, 
+        seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.key().as_ref(), contract_state.authority.key().as_ref()], 
+        bump 
+    ]]
+    pub contract_state: Box<Account<'info, ContractState>>,
+  #[account(
+    mut,
+    seeds = [contract_state.key().as_ref(), user_authority.key().as_ref()],
+    bump,
+    constraint = user_authority.key() == user_state.authority.key() @ ErrorCode::Unauthorized,
+    constraint = user_state.contract_account == contract_state.key() @ErrorCode::Invalid
+)]
+pub user_state: Box<Account<'info, UserState>>,
+
+#[account(
+  mut, 
+  token::mint = contract_state.collateral_mint,
+  token::authority = user_state,
+  constraint = (vault_free_collateral_ata.mint == whirlpool.token_mint_a) || (vault_free_collateral_ata.mint == whirlpool.token_mint_b)
+)]
+pub vault_free_collateral_ata: Box<Account<'info, TokenAccount>>,
+
+#[account(
+  mut, 
+  token::mint = contract_state.lcontract_mint,
+  token::authority = user_state,
+  constraint = (vault_lcontract_ata.mint == whirlpool.token_mint_a) || ((vault_lcontract_ata.mint == whirlpool.token_mint_b))
+)]
+pub vault_lcontract_ata: Box<Account<'info, TokenAccount>>,
+
+  pub whirlpool_program: Program<'info, whirlpools::program::Whirlpool>,
 
   #[account(mut)]
   pub whirlpool: Box<Account<'info, Whirlpool>>,
 
-  #[account(mut, constraint = token_owner_account_a.mint == whirlpool.token_mint_a)]
-  pub token_owner_account_a: Box<Account<'info, TokenAccount>>,
   #[account(mut, address = whirlpool.token_vault_a)]
   pub token_vault_a: Box<Account<'info, TokenAccount>>,
 
-  #[account(mut, constraint = token_owner_account_b.mint == whirlpool.token_mint_b)]
-  pub token_owner_account_b: Box<Account<'info, TokenAccount>>,
   #[account(mut, address = whirlpool.token_vault_b)]
   pub token_vault_b: Box<Account<'info, TokenAccount>>,
 

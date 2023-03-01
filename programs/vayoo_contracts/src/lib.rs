@@ -39,8 +39,9 @@ pub mod vayoo_contracts {
         contract_name: String,
         bump: u8,
         ending_time: i64,
+        limiting_amplitude: u64
     ) -> Result<()> {
-        initialize_contract::handle(ctx, contract_name, bump, ending_time)
+        initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude)
     }
 
     /**
@@ -68,6 +69,16 @@ pub mod vayoo_contracts {
      */
     pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
         withdraw_collateral::handle(ctx, amount)
+    }
+
+/**
+     * des
+     */
+    pub fn mint_contract_mm(
+        ctx: Context<MintContractMm>,
+        amount: u64
+    ) -> Result<()> {
+         mint_lcontract_mm::handle(ctx, amount)
     }
 
     /**

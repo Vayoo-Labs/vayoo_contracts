@@ -1,5 +1,6 @@
 //libraries
 use anchor_lang::prelude::*;
+use anchor_spl::token::{TokenAccount, Mint, Token};
 use std::mem::size_of;
 
 //local imports
@@ -35,11 +36,40 @@ pub fn handle(ctx: Context<InitUser>, bump: u8) -> Result<()> {
       pub user_state: Box<Account<'info, UserState>>,
   
       #[account[mut, 
-            seeds = [contract_state.name.as_ref(), contract_state.underlying_mint.key().as_ref(), contract_state.authority.key().as_ref()], 
+            seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.key().as_ref(), contract_state.authority.key().as_ref()], 
             bump 
         ]]
       pub contract_state: Box<Account<'info, ContractState>>,  
-  
+      #[account(init,
+        token::mint = collateral_mint,
+        token::authority = user_state,
+        seeds = [
+          b"free",
+          user_state.key().as_ref(),
+          collateral_mint.key().as_ref(),
+        ],
+        bump,
+        payer = user_authority
+        )]
+        pub vault_free_collateral_ata: Box<Account<'info, TokenAccount>>,
+
+
+        #[account(init,
+          token::mint = collateral_mint,
+          token::authority = user_state,
+          seeds = [
+          b"locked",
+          user_state.key().as_ref(),
+          collateral_mint.key().as_ref(),
+        ],
+          bump,
+          payer = user_authority
+      )]
+      pub vault_locked_collateral_ata: Box<Account<'info, TokenAccount>>,
+
+      pub collateral_mint: Box<Account<'info, Mint>>,
+      pub token_program: Program<'info, Token>,
+
       pub system_program: Program<'info, System>,
       pub rent: Sysvar<'info, Rent>,
   }

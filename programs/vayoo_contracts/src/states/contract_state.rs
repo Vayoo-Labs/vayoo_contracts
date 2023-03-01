@@ -14,7 +14,8 @@ pub struct ContractState {
     pub is_halted_trading:bool, //1
 
     pub collateral_mint: Pubkey,       // 32
-    pub underlying_mint: Pubkey, // 32
+    pub lcontract_mint: Pubkey, // 32
+    pub scontract_mint: Pubkey, // 32
     pub pyth_feed_id: Pubkey, //32
 
     pub contract_limiting_bound_amplitude: u64, // 32

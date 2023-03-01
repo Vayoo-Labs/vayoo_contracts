@@ -10,6 +10,7 @@ import {
   TOKEN_PROGRAM_ID,
   u64,
 } from "@solana/spl-token";
+import { NEW_MINT_DECIMALS } from "./constants";
 
 export async function createMint(
   provider: AnchorProvider,
@@ -42,7 +43,7 @@ export async function createMintInstructions(
       lamports: await provider.connection.getMinimumBalanceForRentExemption(82),
       programId: TOKEN_PROGRAM_ID,
     }),
-    Token.createInitMintInstruction(TOKEN_PROGRAM_ID, mint, 0, authority, null),
+    Token.createInitMintInstruction(TOKEN_PROGRAM_ID, mint, NEW_MINT_DECIMALS, authority, null),
   ];
   return instructions;
 }

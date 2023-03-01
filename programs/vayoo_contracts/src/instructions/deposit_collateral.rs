@@ -13,7 +13,7 @@ pub fn handle(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_collateral_ata.to_account_info(),
-        to: ctx.accounts.vault_collateral_ata.to_account_info(),
+        to: ctx.accounts.vault_free_collateral_ata.to_account_info(),
         authority: ctx.accounts.user_authority.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -40,13 +40,13 @@ pub struct DepositCollateral<'info> {
     pub user_collateral_ata: Box<Account<'info, TokenAccount>>,
     #[account(
         mut, 
-        associated_token::mint = contract_state.collateral_mint,
-        associated_token::authority = user_state
+        token::mint = contract_state.collateral_mint,
+        token::authority = user_state
     )]
-    pub vault_collateral_ata: Box<Account<'info, TokenAccount>>,
+    pub vault_free_collateral_ata: Box<Account<'info, TokenAccount>>,
     #[account[
         mut, 
-        seeds = [contract_state.name.as_ref(), contract_state.underlying_mint.as_ref(), contract_state.authority.as_ref()], 
+        seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.as_ref(), contract_state.authority.as_ref()], 
         bump 
     ]]
     pub contract_state: Box<Account<'info, ContractState>>,

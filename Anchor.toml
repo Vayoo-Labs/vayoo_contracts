@@ -23,30 +23,6 @@ address = "BGnhGXT9CCt5WYS23zg9sqsAT2MGXkq7VSwch9pML82W"
 [[test.validator.clone]]
 address = "GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU"
 
-# Super User ATA Samo [22 Samo Balance]
-[[test.validator.clone]]
-address = "7MmzTYgGM8yX8yMPWngEx8rK7ZX2hU7h9P4Ez16WPUQB"
-
-# Super User ATA USDC [0.1 USDC Balance]
-[[test.validator.clone]]
-address = "2pJxmcoBT9vd2uxfL84e8NseFABt9Mx7P6DreSBRVME3"
-
-# Test User ATA Samo [22 Samo Balance]
-[[test.validator.clone]]
-address = "AwVXdVdkXTvSA7ja3gDYfLDRmkMafsMzoJoBowA2AMdL"
-
-# Test User ATA USDC [0.1 USDC Balance]
-[[test.validator.clone]]
-address = "E13JZKB5iDX4D85s2S95fBusbquKphejXnX4WnEkm4ej"
-
-# SAMO Mint
-[[test.validator.clone]]
-address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
-
-# USDC Mint
-[[test.validator.clone]]
-address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-
 [features]
 seeds = false
 skip-lint = false
