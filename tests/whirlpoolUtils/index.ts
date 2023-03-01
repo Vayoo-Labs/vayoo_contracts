@@ -57,7 +57,6 @@ export const addLiquidity = async (whirlpoolCtx: WhirlpoolContext, poolKey: Publ
         PriceMath.priceToTickIndex(new Decimal(101), tokenADecimal, tokenBDecimal),
         poolData.tickSpacing
     );
-    console.log(tickLower, tickUpper)
 
     // Get a quote on the estimated liquidity and tokenIn (50 tokenA)
     const quote = increaseLiquidityQuoteByInputToken(

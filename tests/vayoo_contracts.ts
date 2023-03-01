@@ -217,73 +217,69 @@ describe("vayoo_contracts", () => {
     const amount_specified_is_input = true;
     const a_to_b = true;
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
-    const tickarrays = SwapUtils.getTickArrayPublicKeys(
-      poolData.tickCurrentIndex,
-      poolData.tickSpacing,
-      a_to_b,
-      whirlpoolCtx.program.programId,
-      poolKey
+
+    // Init tick arrays
+    let firstArrayStartTick = TickUtil.getStartTickIndex(poolData.tickCurrentIndex, poolData.tickSpacing);
+    const secondArrayStartTick = firstArrayStartTick - (TICK_ARRAY_SIZE * poolData.tickSpacing);
+    const thirdArrayStartTick = secondArrayStartTick - (TICK_ARRAY_SIZE * poolData.tickSpacing);
+    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
+
+    const txBuilder = new TransactionBuilder(
+      whirlpoolCtx.connection,
+      whirlpoolCtx.provider.wallet
     );
+    const ix1 = 
+      WhirlpoolIx.initTickArrayIx(whirlpoolCtx.program, {
+        startTick: secondArrayStartTick,
+        tickArrayPda: tickArrays[1],
+        whirlpool: poolKey,
+        funder: testUser.publicKey,
+      })
+    txBuilder.addInstruction(ix1)
+    const ix2 = 
+      WhirlpoolIx.initTickArrayIx(whirlpoolCtx.program, {
+        startTick: thirdArrayStartTick,
+        tickArrayPda: tickArrays[2],
+        whirlpool: poolKey,
+        funder: testUser.publicKey,
+      })
+    txBuilder.addInstruction(ix2)
 
-    // This is the failing code,
-    // tickarray[0] is init
-    // trying to already init tickarray[1] is causing weird problems
-    // providing tickarray[0] for all the tickarray works for the swap,
-    // but this is too scary to ignore for our future pools/testing
+    const txHash = await txBuilder.buildAndExecute();
+    await connection.confirmTransaction(txHash);
 
+    try {
+      const swap = await program.methods
+        .longUser(
+          amount,
+          other_amount_threshold,
+          sqrt_price_limit,
+          amount_specified_is_input,
+          a_to_b,
+        )
+        .accounts({
+          whirlpoolProgram: ORCA_WHIRLPOOL_PROGRAM_ID,
+          whirlpool: poolKey,
+          tokenAuthority: testUser.publicKey,
+          tokenVaultA: poolData.tokenVaultA,
+          tokenVaultB: poolData.tokenVaultB,
+          tokenOwnerAccountA: a_ata.address,
+          tokenOwnerAccountB: b_ata.address,
+          tickArray0: tickArrays[0].publicKey,
+          tickArray1: tickArrays[1].publicKey,
+          tickArray2: tickArrays[2].publicKey,
+          oracle: whirlpool_oracle_pubkey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction();
 
-    // let startTick = TickUtil.getStartTickIndex(poolData.tickCurrentIndex, poolData.tickSpacing);
-    // startTick += (TICK_ARRAY_SIZE * poolData.tickSpacing)
-
-    // const taa = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-    // const txBuilder = new TransactionBuilder(
-    //   whirlpoolCtx.provider.connection,
-    //   whirlpoolCtx.provider.wallet
-    // );
-    // const tx = txBuilder.addInstruction(
-    //   WhirlpoolIx.initTickArrayIx(whirlpoolCtx.program, {
-    //     startTick,
-    //     tickArrayPda: taa[1],
-    //     whirlpool: poolKey,
-    //     funder: testUser.publicKey,
-    //   })
-    // );
-    // const txHash = await tx.addSigner(testUserWallet.payer).buildAndExecute();
-    // await connection.confirmTransaction(txHash);
-
-
-      try {
-        const swap = await program.methods
-          .longUser(
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-            amount_specified_is_input,
-            a_to_b,
-          )
-          .accounts({
-            whirlpoolProgram: ORCA_WHIRLPOOL_PROGRAM_ID,
-            whirlpool: poolKey,
-            tokenAuthority: testUser.publicKey,
-            tokenVaultA: poolData.tokenVaultA,
-            tokenVaultB: poolData.tokenVaultB,
-            tokenOwnerAccountA: a_ata.address,
-            tokenOwnerAccountB: b_ata.address,
-            tickArray0: tickarrays[0],
-            tickArray1: tickarrays[0],
-            tickArray2: tickarrays[0],
-            oracle: whirlpool_oracle_pubkey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-          })
-          .instruction();
-
-        const transaction = new TransactionBuilder(connection, testUserWallet)
-          .addInstruction({ instructions: [swap], cleanupInstructions: [], signers: [testUser] });
-        const signature = await transaction.buildAndExecute();
-        await connection.confirmTransaction(signature);
-      } catch (e) {
-        console.log('Swap Failed')
-        console.log(e);
-      }
+      const transaction = new TransactionBuilder(connection, testUserWallet)
+        .addInstruction({ instructions: [swap], cleanupInstructions: [], signers: [testUser] });
+      const signature = await transaction.buildAndExecute();
+      await connection.confirmTransaction(signature);
+    } catch (e) {
+      console.log('Swap Failed')
+      console.log(e);
+    }
   })
 });
