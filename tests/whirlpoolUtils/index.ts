@@ -15,9 +15,14 @@ export const createWhirlpool = async (whirlpoolCtx: WhirlpoolContext, wallet: an
   const whirlpoolClient = buildWhirlpoolClient(whirlpoolCtx);
   const tickSpacing = 64; // Tick Spacing
 
-  const initialTick = PriceMath.priceToInitializableTickIndex(new Decimal(initialPrice), 6, 6, tickSpacing)
   const [tokenAMintPubKey, tokenBMintPubKey] = PoolUtil.orderMints(mintA, mintB).map(AddressUtil.toPubKey);
 
+  // If mints has flipped, price has to flip too !
+  if (mintA.equals(tokenBMintPubKey)) { 
+    initialPrice = 1/initialPrice;
+  }
+
+  const initialTick = PriceMath.priceToInitializableTickIndex(new Decimal(initialPrice), 6, 6, tickSpacing)
   const { poolKey, tx } = await whirlpoolClient.createPool(
     ORCA_WHIRLPOOL_CONFIG_ID,
     tokenAMintPubKey,
@@ -37,7 +42,7 @@ export const createWhirlpool = async (whirlpoolCtx: WhirlpoolContext, wallet: an
 
 }
 
-export const addLiquidity = async (whirlpoolCtx: WhirlpoolContext, poolKey: PublicKey, amount: number) => {
+export const addLiquidity = async (whirlpoolCtx: WhirlpoolContext, poolKey: PublicKey, amount: number, inputMint: PublicKey, spread: number) => {
 
   // Load everything that you need
   const client = buildWhirlpoolClient(whirlpoolCtx);
@@ -45,28 +50,37 @@ export const addLiquidity = async (whirlpoolCtx: WhirlpoolContext, poolKey: Publ
   const poolData = pool.getData();
   const poolTokenAInfo = pool.getTokenAInfo();
   const poolTokenBInfo = pool.getTokenBInfo();
-
-  // Derive the tick-indices based on a human-readable price
   const tokenADecimal = poolTokenAInfo.decimals;
   const tokenBDecimal = poolTokenBInfo.decimals;
+  const poolPrice = PriceMath.sqrtPriceX64ToPrice(poolData.sqrtPrice, tokenADecimal , tokenBDecimal)
+  const startPrice = poolPrice.sub(poolPrice.mul(new Decimal(spread)))
+  const endPrice = poolPrice.add(poolPrice.mul(new Decimal(spread)))
+  // console.log('Start Price :', startPrice);
+  // console.log('End Price :', endPrice);
+  
+  // Derive the tick-indices based on a human-readable price
   const tickLower = TickUtil.getInitializableTickIndex(
-    PriceMath.priceToTickIndex(new Decimal(49), tokenADecimal, tokenBDecimal),
+    PriceMath.priceToTickIndex(new Decimal(startPrice), tokenADecimal, tokenBDecimal),
     poolData.tickSpacing
   );
   const tickUpper = TickUtil.getInitializableTickIndex(
-    PriceMath.priceToTickIndex(new Decimal(51), tokenADecimal, tokenBDecimal),
+    PriceMath.priceToTickIndex(new Decimal(endPrice), tokenADecimal, tokenBDecimal),
     poolData.tickSpacing
   );
 
   // Get a quote on the estimated liquidity and tokenIn (50000 tokenA)
   const quote = increaseLiquidityQuoteByInputToken(
-    poolTokenAInfo.mint,
+    inputMint,
     new Decimal(amount),
     tickLower,
     tickUpper,
     Percentage.fromFraction(1, 100),
     pool
   );
+
+  const { tokenMaxA, tokenMaxB } = quote;
+  // console.log("Max tok A: ",tokenMaxA.toNumber() / 1e6);
+  // console.log("Max tok B: ",tokenMaxB.toNumber() / 1e6);
 
   // Initialize 2 tick array accounts for both directions
   let firstArrayStartTick = TickUtil.getStartTickIndex(poolData.tickCurrentIndex, poolData.tickSpacing);

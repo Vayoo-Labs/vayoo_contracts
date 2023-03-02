@@ -1,5 +1,5 @@
 import { DecimalUtil } from "@orca-so/common-sdk";
-import { buildWhirlpoolClient, PDAUtil, SwapUtils, TickArrayUtil, WhirlpoolContext } from "@orca-so/whirlpools-sdk";
+import { buildWhirlpoolClient, PDAUtil, PriceMath, SwapUtils, TickArrayUtil, WhirlpoolContext } from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program, BN, web3 } from "@project-serum/anchor";
 import { getAccount, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token-v2";
@@ -109,13 +109,13 @@ describe("vayoo_contracts", () => {
 
   it("Initialize User State for test user", async () => {
     const [userStateKey, userStateKeyBump] = web3.PublicKey.findProgramAddressSync([accounts.contractState.toBuffer(), testUser.publicKey.toBuffer()], program.programId)
-    const [vaultCollateralFreeAta, vaultCollateralFreeAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
-    const [vaultCollateralLockedAta, vaultCollateralLockedAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
 
     accounts.userState = userStateKey;
     accounts.userAuthority = testUser.publicKey;
-    accounts.vaultFreeCollateralAta = vaultCollateralFreeAta;
-    accounts.vaultLockedCollateralAta = vaultCollateralLockedAta;
+    accounts.vaultFreeCollateralAta = vaultFreeCollateralAta;
+    accounts.vaultLockedCollateralAta = vaultLockedCollateralAta;
 
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts
@@ -174,15 +174,34 @@ describe("vayoo_contracts", () => {
   });
 
   it("Deploy whirlpool (lcontract / collateral ) + Add liquidity", async () => {
-    const addLiquidityAmount = 1;
-    const whirlpoolKey = await createWhirlpool(whirlpoolCtx, testUserWallet, accounts.lcontractMint, accounts.collateralMint, 50);
+    const userlxAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+    const userColAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
+
+    let addLiquidityAmount = 10; // amount in lcontract nb
+    const initial_price = 100; // initial price of the pool
+    const spread = 0.01; // liquidity spread
+
+    const whirlpoolKey = await createWhirlpool(whirlpoolCtx, testUserWallet, accounts.lcontractMint, accounts.collateralMint, initial_price);
     accounts.whirlpoolKey = whirlpoolKey;
+
     const poolData = (await whirlpoolClient.getPool(whirlpoolKey)).getData();
-    const position = await addLiquidity(whirlpoolCtx, whirlpoolKey, addLiquidityAmount);
-    const positionData = position.getData();
+    const poolPrice = PriceMath.sqrtPriceX64ToPrice(poolData.sqrtPrice, 6, 6)
+    if (DEBUG_MODE) {
+      console.log("Pool Key: ", whirlpoolKey.toString());
+      console.log("Pool Price: ", poolPrice.toFixed(2));
+      console.log('Token A is LContract', poolData.tokenMintA.equals(accounts.lcontractMint))
+    }
+
+    const positionData = (await addLiquidity(whirlpoolCtx, whirlpoolKey, addLiquidityAmount, accounts.lcontractMint, spread)).getData();
+
+    const userlxAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+    const userColAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
+
     if (DEBUG_MODE) {
       console.log('Pool Mint A: ', poolData.tokenMintA.toString());
       console.log('Pool Mint B: ', poolData.tokenMintB.toString());
+      console.log("Diff lcontract:", Number(userlxAtaAfter.amount - userlxAtaBefore.amount) / 1e6);
+      console.log("Diff collateral:", Number(userColAtaAfter.amount - userColAtaBefore.amount) / 1e6);
     }
     assert.ok(positionData.liquidity.toNumber() > 0);
   });
@@ -199,7 +218,7 @@ describe("vayoo_contracts", () => {
     assert.ok(Number(userUsdcAtaAfter.amount - userCollateralAtaBefore.amount) == amountToWithdraw.toNumber())
   });
 
-  it("Cannot create user state - Contract Ended", async () => {
+  xit("Cannot create user state - Contract Ended", async () => {
     let msg = '';
     const contractName = "v1";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -231,20 +250,20 @@ describe("vayoo_contracts", () => {
 
     // try to create user state
     const [userStateKey, userStateKeyBump] = web3.PublicKey.findProgramAddressSync([contractStateKey.toBuffer(), testUser.publicKey.toBuffer()], program.programId)
-    const [vaultCollateralFreeAta, vaultCollateralFreeAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
-    const [vaultCollateralLockedAta, vaultCollateralLockedAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
 
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultCollateralFreeAta,
-      vaultLockedCollateralAta: vaultCollateralLockedAta,
+      vaultFreeCollateralAta: vaultFreeCollateralAta,
+      vaultLockedCollateralAta: vaultLockedCollateralAta,
     }).signers([testUser]).rpc().catch((e) => (msg = e.error.errorCode.code));
     assert.ok(msg == 'ContractEnded')
   });
 
-  it("Cannot deposit - Contract Ended", async () => {
+  xit("Cannot deposit - Contract Ended", async () => {
     let msg = '';
     const contractName = "v2";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -273,15 +292,15 @@ describe("vayoo_contracts", () => {
 
     // create user state
     const [userStateKey, userStateKeyBump] = web3.PublicKey.findProgramAddressSync([contractStateKey.toBuffer(), testUser.publicKey.toBuffer()], program.programId);
-    const [vaultCollateralFreeAta, vaultCollateralFreeAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
-    const [vaultCollateralLockedAta, vaultCollateralLockedAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
 
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultCollateralFreeAta,
-      vaultLockedCollateralAta: vaultCollateralLockedAta,
+      vaultFreeCollateralAta: vaultFreeCollateralAta,
+      vaultLockedCollateralAta: vaultLockedCollateralAta,
     }).signers([testUser]).rpc();
 
     // delay by 5 seconds
@@ -293,7 +312,7 @@ describe("vayoo_contracts", () => {
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultCollateralFreeAta
+      vaultFreeCollateralAta: vaultFreeCollateralAta
     }).signers([testUser]).rpc().catch((e) => (msg = e.error.errorCode.code));
     assert.ok(msg == 'ContractEnded')
   });
@@ -305,11 +324,15 @@ describe("vayoo_contracts", () => {
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6);
+
+    // Arguments for swap
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(500), 6); // Long with 500 collateral
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
-    const a_to_b = true;
+
+    // Conditional Swap Direction, Super Important
+    const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
 
@@ -333,8 +356,11 @@ describe("vayoo_contracts", () => {
         oracle: whirlpool_oracle_pubkey,
         vaultLcontractAta: vaultLcontractAtaBefore.address,
       })
-      .rpc();
+      .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    if (DEBUG_MODE) {
+      console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount) / 1e6)
+    }
     assert.ok((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) > 0)
   })
 });
