@@ -152,14 +152,25 @@ describe("vayoo_contracts", () => {
 
     const amountToMint = new BN(toNativeAmount(100, USDC_DECIMALS));
     accounts.mmLcontractTokenAta = userlxAtaBefore.address
-    accounts.mmScontractTokenAta = userlxAtaBefore.address
 
-    await program.methods.mintContractMm(amountToMint).accounts({
+    await program.methods.mintLContractMm(amountToMint).accounts({
       ...accounts
     }).signers([testUser]).rpc();
 
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     assert.ok(userStateAccount.lcontractMintedAsMm.eq(amountToMint));
+  });
+
+  it("Burn lcontract as mm", async () => {
+    const userStateAccountBefore = await program.account.userState.fetch(accounts.userState);
+    const amountToBurn = new BN(toNativeAmount(50, USDC_DECIMALS));
+
+    await program.methods.burnLContractMm(amountToBurn).accounts({
+      ...accounts
+    }).signers([testUser]).rpc();
+
+    const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
+    assert.ok(userStateAccountAfter.lcontractMintedAsMm.sub(userStateAccountBefore.lcontractMintedAsMm).eq(amountToBurn));
   });
 
   it("Deploy whirlpool (lcontract / collateral ) + Add liquidity", async () => {

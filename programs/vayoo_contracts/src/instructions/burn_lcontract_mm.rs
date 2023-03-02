@@ -1,6 +1,6 @@
 //libraries
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer,Mint,MintTo};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer,Mint, Burn};
 use crate::errors::ErrorCode;
 
 //local imports
@@ -9,8 +9,6 @@ use crate::states::user_state::UserState;
 
 pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
  
-
-
     //this function is to allow the market makers to mint the token -> be able to put it in the whirlpool and get liquidity 
     //amount here represents the nb of tokens to mint
     //transfer collateral from the deposit account to the locked account
@@ -19,7 +17,8 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
     
- 
+    let contract_limiting_bound_amplitude: u64 = ctx.accounts.contract_state.contract_limiting_bound_amplitude;
+    let amount_to_send = contract_limiting_bound_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
 
     let user_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.user_state.contract_account.as_ref(),
@@ -34,13 +33,9 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
         &[ctx.accounts.contract_state.bump],
     ]];
 
-
-
-    let contract_limiting_bound_amplitude: u64 = ctx.accounts.contract_state.contract_limiting_bound_amplitude;
-    let amount_to_send = contract_limiting_bound_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
     let cpi_accounts = Transfer {
-        from: ctx.accounts.vault_free_collateral_ata.to_account_info(),
-        to: ctx.accounts.vault_locked_collateral_ata.to_account_info(),
+        from: ctx.accounts.vault_locked_collateral_ata.to_account_info(),
+        to: ctx.accounts.vault_free_collateral_ata.to_account_info(),
         authority: ctx.accounts.user_state.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -49,20 +44,20 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
 
 
     //Mint the underlying on the token account of the USER
-    let cpi_accounts = MintTo {
+    let cpi_accounts = Burn {
         mint: ctx.accounts.lcontract_mint.to_account_info(),
-        to: ctx.accounts.mm_lcontract_token_ata.to_account_info(),
+        from: ctx.accounts.mm_lcontract_token_ata.to_account_info(),
         authority: ctx.accounts.contract_state.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
-    token::mint_to(cpi_ctx, amount)?;
+    token::burn(cpi_ctx, amount)?;
 
 
     let user_state = &mut ctx.accounts.user_state;
     // Update User State
-    user_state.usdc_collateral_locked_as_mm +=amount_to_send;
-    user_state.lcontract_minted_as_mm +=amount;
+    user_state.usdc_collateral_locked_as_mm -=amount_to_send;
+    user_state.lcontract_minted_as_mm -=amount;
     
     // Update Contract State
 

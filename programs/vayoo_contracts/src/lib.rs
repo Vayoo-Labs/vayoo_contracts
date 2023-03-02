@@ -71,10 +71,28 @@ pub mod vayoo_contracts {
         withdraw_collateral::handle(ctx, amount)
     }
 
-/**
-     * des
+    /**
+     * Mint lcontract, for MM purposes
+     * 
+     * This function takes in collateral
+     * locks 2 * limiting amplitude * nb of tokens for minting - (free -> locked)
+     * mints the required contracts
      */
-    pub fn mint_contract_mm(
+    pub fn mint_l_contract_mm(
+        ctx: Context<MintContractMm>,
+        amount: u64
+    ) -> Result<()> {
+         mint_lcontract_mm::handle(ctx, amount)
+    }
+
+    /**
+     * Burn lcontract, for MM purposes
+     * 
+     * This function takes in lcontract,
+     * unlocks 2 * limiting amplitude * nb of tokens for minting - (locked -> free)
+     * burns the required contracts
+     */
+    pub fn burn_l_contract_mm(
         ctx: Context<MintContractMm>,
         amount: u64
     ) -> Result<()> {

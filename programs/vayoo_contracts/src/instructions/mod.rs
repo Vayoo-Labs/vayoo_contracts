@@ -15,3 +15,6 @@ pub use long_user::*;
 
 pub mod mint_lcontract_mm;
 pub use mint_lcontract_mm::*;
+
+pub mod burn_lcontract_mm;
+pub use burn_lcontract_mm::*;
