@@ -28,4 +28,6 @@ pub enum ErrorCode {
     ContractDepositHalted,
     #[msg("Contract has been halted for trading")]
     ContractTradingHalted,
+    #[msg("Trying to close a bigger position than what you have opened")]
+    ClosePositionBiggerThanOpened,
 }

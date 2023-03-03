@@ -218,7 +218,7 @@ describe("vayoo_contracts", () => {
     assert.ok(Number(userUsdcAtaAfter.amount - userCollateralAtaBefore.amount) == amountToWithdraw.toNumber())
   });
 
-  xit("Cannot create user state - Contract Ended", async () => {
+  it("Cannot create user state - Contract Ended", async () => {
     let msg = '';
     const contractName = "v1";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -263,7 +263,7 @@ describe("vayoo_contracts", () => {
     assert.ok(msg == 'ContractEnded')
   });
 
-  xit("Cannot deposit - Contract Ended", async () => {
+  it("Cannot deposit - Contract Ended", async () => {
     let msg = '';
     const contractName = "v2";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -358,9 +358,113 @@ describe("vayoo_contracts", () => {
       })
       .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const userStateAccount = await program.account.userState.fetch(accounts.userState);
     if (DEBUG_MODE) {
-      console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount) / 1e6)
+      console.log('Lcontract bought: ',userStateAccount.lcontractBoughtAsUser.toNumber() / 1e6)
+      console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
     }
-    assert.ok((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) > 0)
+    assert.ok(Number((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount)) == userStateAccount.lcontractBoughtAsUser.toNumber());
+    assert.ok(userStateAccount.contractPositionNet.toNumber() == userStateAccount.lcontractBoughtAsUser.toNumber());
+  });
+
+  it("Trying to Close Long position more than what's opened - test User", async () => {
+    let msg = '';
+
+    // Getting all accounts for the swap
+    const poolKey = accounts.whirlpoolKey;
+    const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
+    const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
+
+    // Arguments for swap
+    const userStateAccount = await program.account.userState.fetch(accounts.userState);
+    const amountToClose = userStateAccount.lcontractBoughtAsUser.add(new BN(1)); // Amount greater than the position opened
+
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(amountToClose.toNumber())); // Close long position
+    const amount = new anchor.BN(a_input);
+    const other_amount_threshold = new anchor.BN(0);
+    const amount_specified_is_input = true;
+
+    // Conditional Swap Direction, Super Important
+    const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
+    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
+    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
+
+    await program.methods
+      .closeLongUser(
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit,
+        amount_specified_is_input,
+        a_to_b,
+      )
+      .accounts({
+        ...accounts,
+        whirlpoolProgram: whirlpoolCtx.program.programId,
+        whirlpool: poolKey,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArray0: tickArrays[0].publicKey,
+        tickArray1: tickArrays[1].publicKey,
+        tickArray2: tickArrays[2].publicKey,
+        oracle: whirlpool_oracle_pubkey,
+        vaultLcontractAta: vaultLcontractAtaBefore.address,
+      })
+      .rpc().catch((e) => { msg = e.error.errorCode.code });
+
+    assert.ok(msg == 'ClosePositionBiggerThanOpened')
+  })
+
+  it("Close Long Contract - test User", async () => {
+    // Getting all accounts for the swap
+    const poolKey = accounts.whirlpoolKey;
+    const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
+    const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
+
+    // Arguments for swap
+    const userStateAccount = await program.account.userState.fetch(accounts.userState);
+    const amountToClose = userStateAccount.lcontractBoughtAsUser
+
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(amountToClose.toNumber())); // Close long position
+    const amount = new anchor.BN(a_input);
+    const other_amount_threshold = new anchor.BN(0);
+    const amount_specified_is_input = true;
+
+    // Conditional Swap Direction, Super Important
+    const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
+    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
+    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
+
+    await program.methods
+      .closeLongUser(
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit,
+        amount_specified_is_input,
+        a_to_b,
+      )
+      .accounts({
+        ...accounts,
+        whirlpoolProgram: whirlpoolCtx.program.programId,
+        whirlpool: poolKey,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArray0: tickArrays[0].publicKey,
+        tickArray1: tickArrays[1].publicKey,
+        tickArray2: tickArrays[2].publicKey,
+        oracle: whirlpool_oracle_pubkey,
+        vaultLcontractAta: vaultLcontractAtaBefore.address,
+      })
+      .rpc().catch((e) => { console.log(e) });
+    const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
+    if (DEBUG_MODE) {
+      console.log('Lcontract long position: ',userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
+      console.log('No of lcontract Closed :', Number(vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount) / 1e6)
+    }
+    assert.ok(Number((vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount)) == amountToClose.toNumber())
+    assert.ok(userStateAccountAfter.lcontractBoughtAsUser.toNumber() == 0);
+    assert.ok(userStateAccountAfter.contractPositionNet.toNumber() == 0);
   })
 });

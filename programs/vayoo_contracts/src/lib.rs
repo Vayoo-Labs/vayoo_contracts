@@ -112,4 +112,18 @@ pub mod vayoo_contracts {
     ) -> Result<()> {
         long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
     }
+
+    /**
+     * Close Long Contract
+     */
+    pub fn close_long_user(
+        ctx: Context<CloseLongUser>,
+        amount: u64,
+        other_amount_threshold: u64,
+        sqrt_price_limit: u128,
+        amount_specified_is_input: bool,
+        a_to_b: bool,
+    ) -> Result<()> {
+        close_long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
+    }
 }

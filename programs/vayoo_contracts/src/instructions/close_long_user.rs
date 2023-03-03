@@ -5,7 +5,7 @@ use whirlpools::{self, state::*};
 use crate::{errors::ErrorCode, states::UserState};
 use crate::states::ContractState;
 
-pub fn handle(ctx: Context<LongUser>, amount: u64,
+pub fn handle(ctx: Context<CloseLongUser>, amount: u64,
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
     amount_specified_is_input: bool,
@@ -18,6 +18,11 @@ pub fn handle(ctx: Context<LongUser>, amount: u64,
 
     let user_state = &mut ctx.accounts.user_state;
   
+    require!(
+        amount <= user_state.lcontract_bought_as_user,
+        ErrorCode::ClosePositionBiggerThanOpened
+    );
+
     let signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
         user_state.authority.as_ref(),
@@ -26,11 +31,11 @@ pub fn handle(ctx: Context<LongUser>, amount: u64,
     
     // This check is necessary, since orca uses cardinal ordering for the mints, and the pool can be either A/B or B/A
     if ctx.accounts.vault_free_collateral_ata.mint == ctx.accounts.token_vault_a.mint {
-      token_account_a = &ctx.accounts.vault_free_collateral_ata;
       token_account_b = &ctx.accounts.vault_lcontract_ata;
+      token_account_a = &ctx.accounts.vault_free_collateral_ata;
     } else {
+       token_account_b = &ctx.accounts.vault_free_collateral_ata;
       token_account_a = &ctx.accounts.vault_lcontract_ata;
-      token_account_b = &ctx.accounts.vault_free_collateral_ata;
     }
     let cpi_program = ctx.accounts.whirlpool_program.to_account_info();
   
@@ -64,15 +69,15 @@ pub fn handle(ctx: Context<LongUser>, amount: u64,
     // Updating State
     ctx.accounts.vault_lcontract_ata.reload()?;
     let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
-    let amount_swapped = lcontract_bal_after - lcontract_bal_before;
-    user_state.contract_position_net += amount_swapped as i64;
-    user_state.lcontract_bought_as_user += amount_swapped;
+    let amount_swapped = lcontract_bal_before - lcontract_bal_after;
+    user_state.contract_position_net -= amount_swapped as i64;
+    user_state.lcontract_bought_as_user -= amount_swapped;
   
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct LongUser<'info> {
+pub struct CloseLongUser<'info> {
   #[account(mut)]
     pub user_authority: Signer<'info>,
     #[account[
