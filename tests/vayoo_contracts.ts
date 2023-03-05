@@ -13,7 +13,7 @@ import { addLiquidity, createWhirlpool } from "./whirlpoolUtils";
 import { ORCA_WHIRLPOOL_PROGRAM_ID } from "./whirlpoolUtils/utils/constants";
 import { createAndMintToAssociatedTokenAccount, createMint } from "./whirlpoolUtils/utils/token";
 
-const DEBUG_MODE = false; // If true, log useful info accross the tests on the console
+const DEBUG_MODE = true; // If true, log useful info accross the tests on the console
 
 describe("vayoo_contracts", () => {
   const provider = anchor.AnchorProvider.env();
@@ -170,7 +170,7 @@ describe("vayoo_contracts", () => {
 
     const amountToMint = new BN(toNativeAmount(100, USDC_DECIMALS));
     accounts.mmLcontractAta = mmLcontractAta.address
-    accounts.mmLockedScontractAta = accounts.vaultLockedScontractAta 
+    accounts.mmLockedScontractAta = accounts.vaultLockedScontractAta
 
     await program.methods.mintLContractMm(amountToMint).accounts({
       ...accounts
@@ -189,7 +189,7 @@ describe("vayoo_contracts", () => {
     }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
 
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
-    assert.ok(userStateAccountAfter.lcontractMintedAsMm.sub(userStateAccountBefore.lcontractMintedAsMm).eq(amountToBurn));
+    assert.ok(userStateAccountBefore.lcontractMintedAsMm.sub(userStateAccountAfter.lcontractMintedAsMm).eq(amountToBurn));
   });
 
   it("Deploy whirlpool (lcontract / collateral ) + Add liquidity", async () => {
@@ -197,7 +197,7 @@ describe("vayoo_contracts", () => {
     const userColAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
 
     let addLiquidityAmount = 10; // amount in lcontract nb
-    const initial_price = 100; // initial price of the pool
+    const initial_price = 15; // initial price of the pool
     const spread = 0.01; // liquidity spread
 
     const whirlpoolKey = await createWhirlpool(whirlpoolCtx, testUserWallet, accounts.lcontractMint, accounts.collateralMint, initial_price);
@@ -256,10 +256,10 @@ describe("vayoo_contracts", () => {
       );
     const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
     const [escrowVaultCollateral, escrowVaultCollateralBump] =
-    anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
-      program.programId
-    );
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+        program.programId
+      );
 
     // init contract with 3 second to the expiry
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
@@ -311,10 +311,10 @@ describe("vayoo_contracts", () => {
       );
     const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
     const [escrowVaultCollateral, escrowVaultCollateralBump] =
-    anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
-      program.programId
-    );
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+        program.programId
+      );
 
     // init contract with 4 second to the expiry
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
@@ -357,6 +357,124 @@ describe("vayoo_contracts", () => {
     assert.ok(msg == 'ContractEnded')
   });
 
+  it("Short Contract ", async () => {
+    // Getting all accounts for the swap
+    const poolKey = accounts.whirlpoolKey;
+    const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
+    const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
+    const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
+    const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
+
+    // Arguments for swap
+    const userStateAccount = await program.account.userState.fetch(accounts.userState);
+    const amountToClose = userStateAccount.lcontractBoughtAsUser
+
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1000000)); // open short
+    const amount = new anchor.BN(a_input);
+    const other_amount_threshold = new anchor.BN(0);
+    const amount_specified_is_input = true;
+
+    // Conditional Swap Direction, Super Important
+    const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
+    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
+    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
+
+    await program.methods
+      .shortUser(
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit,
+        amount_specified_is_input,
+        a_to_b,
+      )
+      .accounts({
+        ...accounts,
+        whirlpoolProgram: whirlpoolCtx.program.programId,
+        whirlpool: poolKey,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArray0: tickArrays[0].publicKey,
+        tickArray1: tickArrays[1].publicKey,
+        tickArray2: tickArrays[2].publicKey,
+        oracle: whirlpool_oracle_pubkey,
+        vaultLcontractAta: vaultLcontractAtaBefore.address,
+        vaultScontractAta: vaultScontractAtaBefore.address,
+      })
+      .rpc().catch((e) => { console.log(e) });
+    const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const vaultScontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const collateral_after = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
+    const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta)
+    const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta)
+
+
+    if (DEBUG_MODE) {
+      console.log('No of scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log('Free acc change :', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
+      console.log('Locked acc change :', Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)
+    }
+  });
+
+  it("Close Short Contract ", async () => {
+    // Getting all accounts for the swap
+    const poolKey = accounts.whirlpoolKey;
+    const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
+    const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
+    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);    
+    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
+    const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
+    
+    // Arguments for swap
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(14), 6); // Long with 500 collateral
+    const amount = new anchor.BN(a_input);
+    const other_amount_threshold = new anchor.BN(0);
+    const amount_specified_is_input = true;
+
+    // Conditional Swap Direction, Super Important
+    const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
+    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
+    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
+
+    await program.methods
+      .closeShortUser(
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit,
+        amount_specified_is_input,
+        a_to_b,
+      )
+      .accounts({
+        ...accounts,
+        whirlpoolProgram: whirlpoolCtx.program.programId,
+        whirlpool: poolKey,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArray0: tickArrays[0].publicKey,
+        tickArray1: tickArrays[1].publicKey,
+        tickArray2: tickArrays[2].publicKey,
+        oracle: whirlpool_oracle_pubkey,
+        vaultLcontractAta: vaultLcontractAtaBefore.address,
+        vaultScontractAta: vaultScontractAtaBefore.address,
+      })
+      .rpc().catch((e) => { console.log(e) });
+    const vaultScontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+
+    const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta)
+    const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta)
+    
+    const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    if (DEBUG_MODE) {
+
+      console.log('No of scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log('Free acc change :', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
+      console.log('Locked acc change :', Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)
+
+    }
+  });
+
 
   it("Long Contract - test User", async () => {
     // Getting all accounts for the swap
@@ -366,7 +484,7 @@ describe("vayoo_contracts", () => {
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
 
     // Arguments for swap
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(500), 6); // Long with 500 collateral
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6); // Long with 500 collateral
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
@@ -451,10 +569,10 @@ describe("vayoo_contracts", () => {
         vaultLcontractAta: vaultLcontractAtaBefore.address,
       })
       .rpc().catch((e) => { msg = e.error.errorCode.code });
-      
-      assert.ok(msg == 'ClosePositionBiggerThanOpened')
+
+    assert.ok(msg == 'ClosePositionBiggerThanOpened')
   });
-    
+
   it("Close Long Contract - test User", async () => {
     // Getting all accounts for the swap
     const poolKey = accounts.whirlpoolKey;
@@ -462,41 +580,41 @@ describe("vayoo_contracts", () => {
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     accounts.vaultLcontractAta = vaultLcontractAtaBefore.address;
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-    
+
     // Arguments for swap
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     const amountToClose = userStateAccount.lcontractBoughtAsUser
-    
+
     const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(amountToClose.toNumber())); // Close long position
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
-    
+
     // Conditional Swap Direction, Super Important
     const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-  
+
     await program.methods
-    .closeLongUser(
-      amount,
-      other_amount_threshold,
-      sqrt_price_limit,
-      amount_specified_is_input,
-      a_to_b,
+      .closeLongUser(
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit,
+        amount_specified_is_input,
+        a_to_b,
       )
-    .accounts({
-      ...accounts,
-      whirlpoolProgram: whirlpoolCtx.program.programId,
-      whirlpool: poolKey,
-      tokenVaultA: poolData.tokenVaultA,
-      tokenVaultB: poolData.tokenVaultB,
-      tickArray0: tickArrays[0].publicKey,
-      tickArray1: tickArrays[1].publicKey,
-      tickArray2: tickArrays[2].publicKey,
-      oracle: whirlpool_oracle_pubkey,
-      vaultLcontractAta: vaultLcontractAtaBefore.address,
-    }).rpc().catch((e) => { console.log(e) });
+      .accounts({
+        ...accounts,
+        whirlpoolProgram: whirlpoolCtx.program.programId,
+        whirlpool: poolKey,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArray0: tickArrays[0].publicKey,
+        tickArray1: tickArrays[1].publicKey,
+        tickArray2: tickArrays[2].publicKey,
+        oracle: whirlpool_oracle_pubkey,
+        vaultLcontractAta: vaultLcontractAtaBefore.address,
+      }).rpc().catch((e) => { console.log(e) });
 
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
@@ -515,7 +633,7 @@ describe("vayoo_contracts", () => {
     const timeNow = (Date.now() / 1000)
     const endTime = (contractStateAccount.endingTime.toNumber())
     if (DEBUG_MODE) {
-      console.log("Time difference from end - start: ",endTime - timeNow)
+      console.log("Time difference from end - start: ", endTime - timeNow)
     }
     assert.ok(contractStateAccount.isSettling);
   });

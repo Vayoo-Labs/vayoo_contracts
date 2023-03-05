@@ -82,7 +82,7 @@ pub mod vayoo_contracts {
         ctx: Context<MintContractMm>,
         amount: u64
     ) -> Result<()> {
-         mint_lcontract_mm::handle(ctx, amount)
+        mint_lcontract_mm::handle(ctx, amount)
     }
 
     /**
@@ -93,10 +93,10 @@ pub mod vayoo_contracts {
      * burns the required contracts
      */
     pub fn burn_l_contract_mm(
-        ctx: Context<MintContractMm>,
+        ctx: Context<BurnContractMm>,
         amount: u64
     ) -> Result<()> {
-         mint_lcontract_mm::handle(ctx, amount)
+        burn_lcontract_mm::handle(ctx, amount)
     }
 
     /**
@@ -162,5 +162,33 @@ pub mod vayoo_contracts {
         ctx: Context<UserSettleLong>
     ) -> Result<()> {
         user_settle_long::handle(ctx)
+    }
+
+     /**
+     * Short Contract
+     */
+    pub fn short_user(
+        ctx: Context<ShortUser>,
+        amount: u64,
+        other_amount_threshold: u64,
+        sqrt_price_limit: u128,
+        amount_specified_is_input: bool,
+        a_to_b: bool,
+    ) -> Result<()> {
+        short_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
+    }
+
+    /**
+     * Close Short Contract
+     */
+    pub fn close_short_user(
+        ctx: Context<CloseShortUser>,
+        amount: u64,
+        other_amount_threshold: u64,
+        sqrt_price_limit: u128,
+        amount_specified_is_input: bool,
+        a_to_b: bool,
+    ) -> Result<()> {
+        close_short_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
     }
 }

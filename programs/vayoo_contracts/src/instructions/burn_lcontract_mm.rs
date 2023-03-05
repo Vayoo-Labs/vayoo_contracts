@@ -7,7 +7,7 @@ use crate::errors::ErrorCode;
 use crate::states::contract_state::ContractState;
 use crate::states::user_state::UserState;
 
-pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
+pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
  
     //this function is to allow the market makers to mint the token -> be able to put it in the whirlpool and get liquidity 
     //amount here represents the nb of tokens to mint
@@ -17,7 +17,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
     
-    let amount_to_send = ctx.accounts.contract_state.limiting_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
+    let amount_to_send = ctx.accounts.contract_state.limiting_amplitude.checked_mul(amount).unwrap();
 
     let user_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.user_state.contract_account.as_ref(),
@@ -45,21 +45,21 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Burn lcontract
     let cpi_accounts = Burn {
         mint: ctx.accounts.lcontract_mint.to_account_info(),
-        from: ctx.accounts.mm_lcontract_token_ata.to_account_info(),
-        authority: ctx.accounts.contract_state.to_account_info(),
+        from: ctx.accounts.mm_lcontract_ata.to_account_info(),
+        authority: ctx.accounts.user_authority.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::burn(cpi_ctx, amount)?;
 
     //Burn scontract
     let cpi_accounts = Burn {
         mint: ctx.accounts.scontract_mint.to_account_info(),
-        from: ctx.accounts.mm_locked_scontract_token_ata.to_account_info(),
-        authority: ctx.accounts.contract_state.to_account_info(),
+        from: ctx.accounts.mm_locked_scontract_ata.to_account_info(),
+        authority: ctx.accounts.user_state.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, user_signer_seeds);
     token::burn(cpi_ctx, amount)?;
 
 
@@ -74,7 +74,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
 }
 
 #[derive(Accounts)]
-pub struct MintContractMm<'info> {
+pub struct BurnContractMm<'info> {
     #[account(mut)]
     pub user_authority: Signer<'info>,
 
@@ -96,14 +96,14 @@ pub struct MintContractMm<'info> {
         token::mint = lcontract_mint,
         token::authority = user_authority
     )]
-    pub mm_lcontract_token_ata: Box<Account<'info, TokenAccount>>,
+    pub mm_lcontract_ata: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut, 
         token::mint = scontract_mint,
         token::authority = user_state
     )]
-    pub mm_locked_scontract_token_ata: Box<Account<'info, TokenAccount>>,
+    pub mm_locked_scontract_ata: Box<Account<'info, TokenAccount>>,
 
     #[account[
         mut, 

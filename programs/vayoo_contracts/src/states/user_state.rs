@@ -21,11 +21,6 @@ pub struct UserState {
     pub usdc_collateral_locked_as_user: u64,
     pub usdc_collateral_spent_as_user: u64,
 
-    pub private_locked_usdc_ata: Pubkey,
-    pub private_free_usdc_ata: Pubkey,
-    pub private_locked_scontract_ata: Pubkey,
-    pub private_locked_lcontract_ata: Pubkey,
-
     pub usdc_deposited: u64,
     pub usdc_withdrawn: u64,
 
