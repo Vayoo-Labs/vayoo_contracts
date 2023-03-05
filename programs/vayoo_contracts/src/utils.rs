@@ -11,8 +11,8 @@ pub fn unrestricted_deposit_phase(contract_state: &ContractState) -> Result<()> 
     if contract_state.is_halted_deposit {
         return err!(ErrorCode::ContractDepositHalted);
     }
-    let clock = Clock::get()?;
-    if clock.unix_timestamp >= contract_state.contract_ending_time {
+    let time_now: u64 = Clock::get()?.unix_timestamp.try_into().unwrap();
+    if time_now >= contract_state.ending_time {
         return err!(ErrorCode::ContractEnded);
     }
     Ok(())
@@ -29,9 +29,17 @@ pub fn unrestricted_trading_phase(contract_state: &ContractState) -> Result<()> 
     if contract_state.is_halted_trading {
         return err!(ErrorCode::ContractTradingHalted);
     }
-    let clock = Clock::get()?;
-    if clock.unix_timestamp >= contract_state.contract_ending_time {
+    let time_now: u64 = Clock::get()?.unix_timestamp.try_into().unwrap();
+    if time_now >= contract_state.ending_time {
         return err!(ErrorCode::ContractEnded);
+    }
+    Ok(())
+}
+
+// Asserts the Contract is still accepting Deposit's
+pub fn settling_mode(contract_state: &ContractState) -> Result<()> {
+    if !contract_state.is_settling {
+        return err!(ErrorCode::MaturityNotReached)
     }
     Ok(())
 }

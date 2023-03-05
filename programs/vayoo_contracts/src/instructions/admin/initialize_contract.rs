@@ -1,6 +1,6 @@
 //libraries
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use std::mem::size_of;
 
 //local imports
@@ -11,7 +11,7 @@ pub fn handle(
     ctx: Context<InitializeContract>,
     contract_name: String,
     bump: u8,
-    ending_time: i64,
+    ending_time: u64,
     limiting_amplitude:u64,
 ) -> Result<()> {
     //[Medium] Initialize mint of the token
@@ -28,6 +28,7 @@ pub fn handle(
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
     contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
+    contract_state.escrow_vault_collateral = ctx.accounts.escrow_vault_collateral.key();
 
     //Get price from pyth and write it in the account
     contract_state.pyth_feed_id = ctx.accounts.pyth_feed.key();
@@ -35,12 +36,12 @@ pub fn handle(
             .get_price_no_older_than(current_timestamp, 60)
             .ok_or(ErrorCode::PythOffline)?;
     msg!(&format!("Initializing at  {}", pyth_feed_price.price) );
-    contract_state.contract_starting_price = pyth_feed_price.price;
+    contract_state.starting_price = pyth_feed_price.price as u64;
 
     //Initialize other stuff
-    contract_state.contract_limiting_bound_amplitude=limiting_amplitude;
-    contract_state.contract_starting_time = current_timestamp;
-    contract_state.contract_ending_time = ending_time;
+    contract_state.limiting_amplitude=limiting_amplitude;
+    contract_state.starting_time = current_timestamp as u64;
+    contract_state.ending_time = ending_time;
     
     Ok(())
 }
@@ -77,6 +78,20 @@ pub struct InitializeContract<'info> {
         payer = contract_authority
     )]
     pub scontract_mint: Box<Account<'info, Mint>>,
+
+    #[account(init,
+        token::mint = collateral_mint,
+        token::authority = contract_state,
+        seeds = [
+        b"escrow",
+        collateral_mint.key().as_ref(),
+        contract_state.key().as_ref(),
+      ],
+        bump,
+        payer = contract_authority
+      )]
+    pub escrow_vault_collateral: Box<Account<'info, TokenAccount>>,
+
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     pub pyth_feed: Account<'info, PriceFeed>,

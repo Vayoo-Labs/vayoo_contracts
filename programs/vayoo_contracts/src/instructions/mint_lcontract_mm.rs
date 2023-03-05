@@ -34,9 +34,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
         &[ctx.accounts.contract_state.bump],
     ]];
 
-
-
-    let contract_limiting_bound_amplitude: u64 = ctx.accounts.contract_state.contract_limiting_bound_amplitude;
+    let contract_limiting_bound_amplitude: u64 = ctx.accounts.contract_state.limiting_amplitude;
     let amount_to_send = contract_limiting_bound_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
     let cpi_accounts = Transfer {
         from: ctx.accounts.vault_free_collateral_ata.to_account_info(),
@@ -51,15 +49,25 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Mint the underlying on the token account of the USER
     let cpi_accounts = MintTo {
         mint: ctx.accounts.lcontract_mint.to_account_info(),
-        to: ctx.accounts.mm_lcontract_token_ata.to_account_info(),
+        to: ctx.accounts.mm_lcontract_ata.to_account_info(),
         authority: ctx.accounts.contract_state.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
     token::mint_to(cpi_ctx, amount)?;
 
+    //Mint the scontract representing the short on the token account of the USER
+    let cpi_accounts = MintTo {
+       mint: ctx.accounts.scontract_mint.to_account_info(),
+       to: ctx.accounts.mm_locked_scontract_ata.to_account_info(),
+       authority: ctx.accounts.contract_state.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
+    token::mint_to(cpi_ctx, amount)?;
 
     let user_state = &mut ctx.accounts.user_state;
+
     // Update User State
     user_state.usdc_collateral_locked_as_mm +=amount_to_send;
     user_state.lcontract_minted_as_mm +=amount;
@@ -92,7 +100,14 @@ pub struct MintContractMm<'info> {
         token::mint = lcontract_mint,
         token::authority = user_authority
     )]
-    pub mm_lcontract_token_ata: Box<Account<'info, TokenAccount>>,
+    pub mm_lcontract_ata: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        mut, 
+        token::mint = scontract_mint,
+        token::authority = user_state
+    )]
+    pub mm_locked_scontract_ata: Box<Account<'info, TokenAccount>>,
 
     #[account[
         mut, 
@@ -110,6 +125,8 @@ pub struct MintContractMm<'info> {
     pub user_state: Box<Account<'info, UserState>>,
     #[account(mut)]
     pub lcontract_mint: Box<Account<'info, Mint>>,
+    #[account(mut)]
+    pub scontract_mint: Box<Account<'info, Mint>>,
     pub collateral_mint: Box<Account<'info, Mint>>,
     // Programs and Sysvars
     pub token_program: Program<'info, Token>,

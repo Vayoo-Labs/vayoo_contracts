@@ -16,8 +16,14 @@ pub use long_user::*;
 pub mod close_long_user;
 pub use close_long_user::*;
 
+pub mod user_settle_long;
+pub use user_settle_long::*;
+
 pub mod mint_lcontract_mm;
 pub use mint_lcontract_mm::*;
 
 pub mod burn_lcontract_mm;
 pub use burn_lcontract_mm::*;
+
+pub mod trigger_settle_mode;
+pub use trigger_settle_mode::*;

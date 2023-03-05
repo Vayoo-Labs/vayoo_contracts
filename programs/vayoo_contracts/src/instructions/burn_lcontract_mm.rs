@@ -17,8 +17,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
     
-    let contract_limiting_bound_amplitude: u64 = ctx.accounts.contract_state.contract_limiting_bound_amplitude;
-    let amount_to_send = contract_limiting_bound_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
+    let amount_to_send = ctx.accounts.contract_state.limiting_amplitude.checked_mul(2).unwrap().checked_mul(amount).unwrap();
 
     let user_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.user_state.contract_account.as_ref(),
@@ -43,10 +42,20 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     token::transfer(cpi_ctx, amount_to_send)?;
 
 
-    //Mint the underlying on the token account of the USER
+    //Burn lcontract
     let cpi_accounts = Burn {
         mint: ctx.accounts.lcontract_mint.to_account_info(),
         from: ctx.accounts.mm_lcontract_token_ata.to_account_info(),
+        authority: ctx.accounts.contract_state.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
+    token::burn(cpi_ctx, amount)?;
+
+    //Burn scontract
+    let cpi_accounts = Burn {
+        mint: ctx.accounts.scontract_mint.to_account_info(),
+        from: ctx.accounts.mm_locked_scontract_token_ata.to_account_info(),
         authority: ctx.accounts.contract_state.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -89,6 +98,13 @@ pub struct MintContractMm<'info> {
     )]
     pub mm_lcontract_token_ata: Box<Account<'info, TokenAccount>>,
 
+    #[account(
+        mut, 
+        token::mint = scontract_mint,
+        token::authority = user_state
+    )]
+    pub mm_locked_scontract_token_ata: Box<Account<'info, TokenAccount>>,
+
     #[account[
         mut, 
         seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.as_ref(), contract_state.authority.as_ref()], 
@@ -105,6 +121,8 @@ pub struct MintContractMm<'info> {
     pub user_state: Box<Account<'info, UserState>>,
     #[account(mut)]
     pub lcontract_mint: Box<Account<'info, Mint>>,
+    #[account(mut)]
+    pub scontract_mint: Box<Account<'info, Mint>>,
     pub collateral_mint: Box<Account<'info, Mint>>,
     // Programs and Sysvars
     pub token_program: Program<'info, Token>,

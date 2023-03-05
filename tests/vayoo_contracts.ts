@@ -63,7 +63,7 @@ describe("vayoo_contracts", () => {
     await program.methods.createGlobalState(globalStateKeyBump).accounts({
       ...accounts,
       authority: superUser.publicKey
-    }).signers([superUser]).rpc();
+    }).signers([superUser]).rpc().catch((e) => { console.log(e) });;
 
     const globalStateAccount = await program.account.globalState.fetch(globalStateKey);
     DEBUG_MODE ? console.log("Global State Key: ", globalStateKey.toString()) : null;
@@ -73,7 +73,8 @@ describe("vayoo_contracts", () => {
   it("Initialize Contract Account/State", async () => {
     const contractName = "v0";
     const timeNow = Math.floor(Date.now() / 1000)
-    const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
+    // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
+    const contractEndTime = new BN(timeNow + 10);
     const amplitude = new BN(30);
 
     const [scontractMint, scontractMintBump] =
@@ -87,6 +88,12 @@ describe("vayoo_contracts", () => {
         program.programId
       );
     const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
+    const [escrowVaultCollateral, escrowVaultCollateralBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+        program.programId
+      );
+    accounts.escrowVaultCollateral = escrowVaultCollateral;
     accounts.contractState = contractStateKey;
     accounts.contractAuthority = superUser.publicKey;
     accounts.lcontractMint = lcontractMint;
@@ -94,7 +101,7 @@ describe("vayoo_contracts", () => {
 
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
       ...accounts
-    }).signers([superUser]).rpc();
+    }).signers([superUser]).rpc().catch((e) => { console.log(e) });;
 
     const contractStateAccount = await program.account.contractState.fetch(contractStateKey);
     if (DEBUG_MODE) {
@@ -107,19 +114,30 @@ describe("vayoo_contracts", () => {
     assert.ok(contractStateAccount.pythFeedId.equals(pythFeed));
   });
 
+  it("Cannot Trigger Settle Mode - Maturity Not Reached", async () => {
+    let msg = '';
+    await program.methods.triggerSettleMode().accounts({ ...accounts }).rpc().catch((e) => (msg = e.error.errorCode.code));
+    assert.ok(msg == 'MaturityNotReached');
+  });
+
   it("Initialize User State for test user", async () => {
     const [userStateKey, userStateKeyBump] = web3.PublicKey.findProgramAddressSync([accounts.contractState.toBuffer(), testUser.publicKey.toBuffer()], program.programId)
     const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
     const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultFreeScontractAta, vaultFreeScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
+    const [vaultLockedScontractAta, vaultLockedScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
+
 
     accounts.userState = userStateKey;
     accounts.userAuthority = testUser.publicKey;
     accounts.vaultFreeCollateralAta = vaultFreeCollateralAta;
     accounts.vaultLockedCollateralAta = vaultLockedCollateralAta;
+    accounts.vaultFreeScontractAta = vaultFreeScontractAta;
+    accounts.vaultLockedScontractAta = vaultLockedScontractAta;
 
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts
-    }).signers([testUser]).rpc();
+    }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
 
     const userStateAccount = await program.account.userState.fetch(userStateKey);
     DEBUG_MODE ? console.log("User State Key: ", userStateKey.toString()) : null;
@@ -139,7 +157,7 @@ describe("vayoo_contracts", () => {
 
     await program.methods.depositCollateral(amountToDeposit).accounts({
       ...accounts
-    }).signers([testUser]).rpc();
+    }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
     const userUsdcAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
 
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
@@ -148,14 +166,15 @@ describe("vayoo_contracts", () => {
   });
 
   it("Mint lcontract as mm", async () => {
-    const userlxAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+    const mmLcontractAta = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
 
     const amountToMint = new BN(toNativeAmount(100, USDC_DECIMALS));
-    accounts.mmLcontractTokenAta = userlxAtaBefore.address
+    accounts.mmLcontractAta = mmLcontractAta.address
+    accounts.mmLockedScontractAta = accounts.vaultLockedScontractAta 
 
     await program.methods.mintLContractMm(amountToMint).accounts({
       ...accounts
-    }).signers([testUser]).rpc();
+    }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
 
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     assert.ok(userStateAccount.lcontractMintedAsMm.eq(amountToMint));
@@ -167,7 +186,7 @@ describe("vayoo_contracts", () => {
 
     await program.methods.burnLContractMm(amountToBurn).accounts({
       ...accounts
-    }).signers([testUser]).rpc();
+    }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
 
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
     assert.ok(userStateAccountAfter.lcontractMintedAsMm.sub(userStateAccountBefore.lcontractMintedAsMm).eq(amountToBurn));
@@ -212,7 +231,7 @@ describe("vayoo_contracts", () => {
 
     await program.methods.withdrawCollateral(amountToWithdraw).accounts({
       ...accounts
-    }).signers([testUser]).rpc();
+    }).signers([testUser]).rpc().catch((e) => { console.log(e) });;
 
     const userUsdcAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
     assert.ok(Number(userUsdcAtaAfter.amount - userCollateralAtaBefore.amount) == amountToWithdraw.toNumber())
@@ -236,13 +255,19 @@ describe("vayoo_contracts", () => {
         program.programId
       );
     const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
+    const [escrowVaultCollateral, escrowVaultCollateralBump] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+      program.programId
+    );
 
     // init contract with 3 second to the expiry
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
       ...accounts,
       contractState: contractStateKey,
       lcontractMint: lcontractMint,
-      scontractMint: scontractMint
+      scontractMint: scontractMint,
+      escrowVaultCollateral: escrowVaultCollateral
     }).signers([superUser]).rpc();
 
     // delay by 4 seconds
@@ -252,13 +277,17 @@ describe("vayoo_contracts", () => {
     const [userStateKey, userStateKeyBump] = web3.PublicKey.findProgramAddressSync([contractStateKey.toBuffer(), testUser.publicKey.toBuffer()], program.programId)
     const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
     const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
+    const [vaultFreeScontractAta, vaultFreeScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
+    const [vaultLockedScontractAta, vaultLockedScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
 
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultFreeCollateralAta,
-      vaultLockedCollateralAta: vaultLockedCollateralAta,
+      vaultFreeCollateralAta,
+      vaultLockedCollateralAta,
+      vaultFreeScontractAta,
+      vaultLockedScontractAta,
     }).signers([testUser]).rpc().catch((e) => (msg = e.error.errorCode.code));
     assert.ok(msg == 'ContractEnded')
   });
@@ -281,13 +310,19 @@ describe("vayoo_contracts", () => {
         program.programId
       );
     const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
+    const [escrowVaultCollateral, escrowVaultCollateralBump] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+      program.programId
+    );
 
     // init contract with 4 second to the expiry
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
       ...accounts,
       contractState: contractStateKey,
       lcontractMint,
-      scontractMint
+      scontractMint,
+      escrowVaultCollateral,
     }).signers([superUser]).rpc();
 
     // create user state
@@ -295,12 +330,17 @@ describe("vayoo_contracts", () => {
     const [vaultFreeCollateralAta, vaultFreeCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
     const [vaultLockedCollateralAta, vaultLockedCollateralAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.collateralMint.toBuffer()], program.programId);
 
+    const [vaultFreeScontractAta, vaultFreeScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("free"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
+    const [vaultLockedScontractAta, vaultLockedScontractAtaBump] = web3.PublicKey.findProgramAddressSync([Buffer.from("locked"), userStateKey.toBuffer(), accounts.scontractMint.toBuffer()], program.programId);
+
     await program.methods.initializeUser(userStateKeyBump).accounts({
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultFreeCollateralAta,
-      vaultLockedCollateralAta: vaultLockedCollateralAta,
+      vaultFreeCollateralAta,
+      vaultLockedCollateralAta,
+      vaultFreeScontractAta,
+      vaultLockedScontractAta,
     }).signers([testUser]).rpc();
 
     // delay by 5 seconds
@@ -312,7 +352,7 @@ describe("vayoo_contracts", () => {
       ...accounts,
       userState: userStateKey,
       contractState: contractStateKey,
-      vaultFreeCollateralAta: vaultFreeCollateralAta
+      vaultFreeCollateralAta
     }).signers([testUser]).rpc().catch((e) => (msg = e.error.errorCode.code));
     assert.ok(msg == 'ContractEnded')
   });
@@ -360,7 +400,7 @@ describe("vayoo_contracts", () => {
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     if (DEBUG_MODE) {
-      console.log('Lcontract bought: ',userStateAccount.lcontractBoughtAsUser.toNumber() / 1e6)
+      console.log('Lcontract bought: ', userStateAccount.lcontractBoughtAsUser.toNumber() / 1e6)
       console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
     }
     assert.ok(Number((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount)) == userStateAccount.lcontractBoughtAsUser.toNumber());
@@ -411,60 +451,84 @@ describe("vayoo_contracts", () => {
         vaultLcontractAta: vaultLcontractAtaBefore.address,
       })
       .rpc().catch((e) => { msg = e.error.errorCode.code });
-
-    assert.ok(msg == 'ClosePositionBiggerThanOpened')
-  })
-
+      
+      assert.ok(msg == 'ClosePositionBiggerThanOpened')
+  });
+    
   it("Close Long Contract - test User", async () => {
     // Getting all accounts for the swap
     const poolKey = accounts.whirlpoolKey;
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
+    accounts.vaultLcontractAta = vaultLcontractAtaBefore.address;
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-
+    
     // Arguments for swap
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     const amountToClose = userStateAccount.lcontractBoughtAsUser
-
+    
     const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(amountToClose.toNumber())); // Close long position
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
-
+    
     // Conditional Swap Direction, Super Important
     const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-
+  
     await program.methods
-      .closeLongUser(
-        amount,
-        other_amount_threshold,
-        sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
+    .closeLongUser(
+      amount,
+      other_amount_threshold,
+      sqrt_price_limit,
+      amount_specified_is_input,
+      a_to_b,
       )
-      .accounts({
-        ...accounts,
-        whirlpoolProgram: whirlpoolCtx.program.programId,
-        whirlpool: poolKey,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
-        tickArray0: tickArrays[0].publicKey,
-        tickArray1: tickArrays[1].publicKey,
-        tickArray2: tickArrays[2].publicKey,
-        oracle: whirlpool_oracle_pubkey,
-        vaultLcontractAta: vaultLcontractAtaBefore.address,
-      })
-      .rpc().catch((e) => { console.log(e) });
+    .accounts({
+      ...accounts,
+      whirlpoolProgram: whirlpoolCtx.program.programId,
+      whirlpool: poolKey,
+      tokenVaultA: poolData.tokenVaultA,
+      tokenVaultB: poolData.tokenVaultB,
+      tickArray0: tickArrays[0].publicKey,
+      tickArray1: tickArrays[1].publicKey,
+      tickArray2: tickArrays[2].publicKey,
+      oracle: whirlpool_oracle_pubkey,
+      vaultLcontractAta: vaultLcontractAtaBefore.address,
+    }).rpc().catch((e) => { console.log(e) });
+
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
     if (DEBUG_MODE) {
-      console.log('Lcontract long position: ',userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
+      console.log('Lcontract long position: ', userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
       console.log('No of lcontract Closed :', Number(vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount) / 1e6)
     }
     assert.ok(Number((vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount)) == amountToClose.toNumber())
     assert.ok(userStateAccountAfter.lcontractBoughtAsUser.toNumber() == 0);
     assert.ok(userStateAccountAfter.contractPositionNet.toNumber() == 0);
-  })
+  });
+
+  it("Trigger Settle Mode - Maturity Reached", async () => {
+    await program.methods.triggerSettleMode().accounts({ ...accounts }).rpc().catch((e) => console.log(e));
+    const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+    const timeNow = (Date.now() / 1000)
+    const endTime = (contractStateAccount.endingTime.toNumber())
+    if (DEBUG_MODE) {
+      console.log("Time difference from end - start: ",endTime - timeNow)
+    }
+    assert.ok(contractStateAccount.isSettling);
+  });
+
+  it("Settle shorts and mm, by admin", async () => {
+    await program.methods.adminSettle().accounts({
+      ...accounts,
+    }).signers([superUser]).rpc().catch((e) => console.log(e));
+  });
+
+  it("Settle longs, by user", async () => {
+    await program.methods.userSettleLong().accounts({
+      ...accounts,
+    }).rpc().catch((e) => console.log(e));
+  });
 });

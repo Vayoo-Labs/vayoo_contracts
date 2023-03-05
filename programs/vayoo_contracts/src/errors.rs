@@ -30,4 +30,8 @@ pub enum ErrorCode {
     ContractTradingHalted,
     #[msg("Trying to close a bigger position than what you have opened")]
     ClosePositionBiggerThanOpened,
+    #[msg("Maturity Time not reached")]
+    MaturityNotReached,
+    #[msg("Already Settled")]
+    AlreadySettled,
 }

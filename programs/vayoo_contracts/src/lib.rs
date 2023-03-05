@@ -38,7 +38,7 @@ pub mod vayoo_contracts {
         ctx: Context<InitializeContract>,
         contract_name: String,
         bump: u8,
-        ending_time: i64,
+        ending_time: u64,
         limiting_amplitude: u64
     ) -> Result<()> {
         initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude)
@@ -125,5 +125,42 @@ pub mod vayoo_contracts {
         a_to_b: bool,
     ) -> Result<()> {
         close_long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit, amount_specified_is_input, a_to_b)
+    }
+
+    /**
+     * Trigger Settle Mode
+     * 
+     * Can be called by anyone, checks whether current time > maturity time. 
+     * If so, trigger settling mode on the contract state
+     * 
+     */
+    pub fn trigger_settle_mode(
+        ctx: Context<TriggerSettleMode>
+    ) -> Result<()> {
+        trigger_settle_mode::handle(ctx)
+    }
+
+     /**
+     * Admin settle shorts and mm
+     * 
+     * Can be called by superuser only (for now)
+     * 
+     */
+    pub fn admin_settle(
+        ctx: Context<AdminSettle>
+    ) -> Result<()> {
+        admin_settle::handle(ctx)
+    }
+
+     /**
+     * User settle long
+     * 
+     * Can be called by user only
+     * 
+     */
+    pub fn user_settle_long(
+        ctx: Context<UserSettleLong>
+    ) -> Result<()> {
+        user_settle_long::handle(ctx)
     }
 }
