@@ -13,7 +13,7 @@ import { addLiquidity, createWhirlpool } from "./whirlpoolUtils";
 import { ORCA_WHIRLPOOL_PROGRAM_ID } from "./whirlpoolUtils/utils/constants";
 import { createAndMintToAssociatedTokenAccount, createMint } from "./whirlpoolUtils/utils/token";
 
-const DEBUG_MODE = true; // If true, log useful info accross the tests on the console
+const DEBUG_MODE = false; // If true, log useful info accross the tests on the console
 
 describe("vayoo_contracts", () => {
   const provider = anchor.AnchorProvider.env();
