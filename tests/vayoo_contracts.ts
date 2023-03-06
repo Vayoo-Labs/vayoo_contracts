@@ -245,7 +245,7 @@ describe("vayoo_contracts", () => {
     assert.ok(Number(userUsdcAtaAfter.amount - userCollateralAtaBefore.amount) == amountToWithdraw.toNumber())
   });
 
-  xit("Cannot create user state - Contract Ended", async () => {
+  it("Cannot create user state - Contract Ended", async () => {
     let msg = '';
     const contractName = "v1";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -300,7 +300,7 @@ describe("vayoo_contracts", () => {
     assert.ok(msg == 'ContractEnded')
   });
 
-  xit("Cannot deposit - Contract Ended", async () => {
+  it("Cannot deposit - Contract Ended", async () => {
     let msg = '';
     const contractName = "v2";
     const timeNow = Math.floor(Date.now() / 1000);
