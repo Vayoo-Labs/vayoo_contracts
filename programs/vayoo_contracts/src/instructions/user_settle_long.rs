@@ -1,19 +1,23 @@
-use std::cmp::min;
+use std::cmp::{max, min};
 
 //libraries
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint,Token, TokenAccount, Burn, self, Transfer};
+use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 
 use crate::states::UserState;
 //local imports
-use crate::states::{contract_state::ContractState};
 use crate::errors::ErrorCode;
+use crate::states::contract_state::ContractState;
 
-pub fn handle(
-    ctx: Context<UserSettleLong>    
-) -> Result<()> {
-    let user_state = & ctx.accounts.user_state;
-    let contract_state = & ctx.accounts.contract_state;
+pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
+    let user_state = &ctx.accounts.user_state;
+    let contract_state = &ctx.accounts.contract_state;
+
+    let user_signer_seeds: &[&[&[u8]]] = &[&[
+        ctx.accounts.user_state.contract_account.as_ref(),
+        ctx.accounts.user_state.authority.as_ref(),
+        &[ctx.accounts.user_state.bump],
+    ]];
 
     let contract_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.contract_state.name.as_bytes(),
@@ -22,26 +26,29 @@ pub fn handle(
         &[ctx.accounts.contract_state.bump],
     ]];
 
-     //1.Settle the long side
-     if user_state.lcontract_bought_as_user>0 { 
+    //1.Settle the long side
+    if user_state.lcontract_bought_as_user > 0 {
         //for this condition, we should also check the amounts of tokens in the token accounts to double check
 
-        let midrange=contract_state.limiting_amplitude.checked_div(2).unwrap();
-        let mut pnl_lcontract=contract_state.starting_price.checked_sub(midrange).unwrap();
-        pnl_lcontract=contract_state.ending_price.checked_sub(pnl_lcontract).unwrap();
-        //midrange=contract_limiting_bound_amplitude/2
-        //payout_1_scontract=(starting_price+midrange) -ending_price
-        if pnl_lcontract>contract_state.limiting_amplitude{
-            pnl_lcontract=contract_state.limiting_amplitude;
-        }
-
-        if pnl_lcontract<0{
-            pnl_lcontract=0;
-        }
+        let midrange = contract_state
+            .limiting_amplitude
+            .checked_div(2)
+            .unwrap()
+            .checked_mul(contract_state.pyth_price_multiplier)
+            .unwrap();
+        let mut pnl_lcontract = contract_state.starting_price.checked_sub(midrange).unwrap();
+        let real_ending_price = max(pnl_lcontract, contract_state.ending_price);
+        pnl_lcontract = real_ending_price.checked_sub(pnl_lcontract).unwrap();
+        pnl_lcontract = min(pnl_lcontract, contract_state.limiting_amplitude);
 
         //if payout_1_scontract>contract_limiting_bound_amplitude -> payout_1_lcontract=contract_limiting_bound_amplitude
         //if payout_1_scontract<0 -> payout_1_lcontract=0
-        let gains_longer=user_state.lcontract_bought_as_user.checked_mul(pnl_lcontract).unwrap();
+        let gains_longer = user_state
+            .lcontract_bought_as_user
+            .checked_mul(pnl_lcontract)
+            .unwrap()
+            .checked_div(contract_state.pyth_price_multiplier)
+            .unwrap();
 
         let cpi_accounts_transfer_pnl_long = Transfer {
             from: ctx.accounts.escrow_vault_collateral.to_account_info(),
@@ -50,17 +57,21 @@ pub fn handle(
         };
 
         let cpi_program_redeem_pnl_long = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program_redeem_pnl_long, cpi_accounts_transfer_pnl_long, contract_signer_seeds);
+        let cpi_ctx = CpiContext::new_with_signer(
+            cpi_program_redeem_pnl_long,
+            cpi_accounts_transfer_pnl_long,
+            contract_signer_seeds,
+        );
         msg!("user settle send from escrow: {}", gains_longer);
         token::transfer(cpi_ctx, gains_longer)?;
 
         let cpi_accounts = Burn {
             mint: ctx.accounts.lcontract_mint.to_account_info(),
             from: ctx.accounts.vault_lcontract_ata.to_account_info(),
-            authority: ctx.accounts.contract_state.to_account_info(),
+            authority: ctx.accounts.user_state.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, contract_signer_seeds);
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, user_signer_seeds);
         msg!("user settle burn: {}", user_state.lcontract_bought_as_user);
         token::burn(cpi_ctx, user_state.lcontract_bought_as_user)?;
     }
@@ -90,19 +101,19 @@ pub struct UserSettleLong<'info> {
     )]
     pub user_state: Box<Account<'info, UserState>>,
     #[account(
-        mut, 
+        mut,
         token::mint = contract_state.collateral_mint,
         token::authority = user_state,
     )]
     pub vault_free_collateral_ata: Box<Account<'info, TokenAccount>>,
 
     #[account(
-        mut, 
+        mut,
         token::mint = contract_state.lcontract_mint,
         token::authority = user_state,
       )]
-      pub vault_lcontract_ata: Box<Account<'info, TokenAccount>>,
-      
+    pub vault_lcontract_ata: Box<Account<'info, TokenAccount>>,
+
     #[account(
         mut,
         seeds = [
@@ -117,6 +128,7 @@ pub struct UserSettleLong<'info> {
     pub escrow_vault_collateral: Box<Account<'info, TokenAccount>>,
 
     pub collateral_mint: Box<Account<'info, Mint>>,
+    #[account(mut)]
     pub lcontract_mint: Box<Account<'info, Mint>>,
 
     // Programs and Sysvars

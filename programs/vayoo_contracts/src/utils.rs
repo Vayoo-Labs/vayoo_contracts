@@ -6,7 +6,7 @@ use crate::states::ContractState;
 // Asserts the Contract is still accepting Deposit's
 pub fn unrestricted_deposit_phase(contract_state: &ContractState) -> Result<()> {
     if contract_state.is_halted {
-        return err!(ErrorCode::ContractHalted)
+        return err!(ErrorCode::ContractHalted);
     }
     if contract_state.is_halted_deposit {
         return err!(ErrorCode::ContractDepositHalted);
@@ -21,7 +21,7 @@ pub fn unrestricted_deposit_phase(contract_state: &ContractState) -> Result<()> 
 // Asserts the Contract is still accepting Deposit's
 pub fn unrestricted_trading_phase(contract_state: &ContractState) -> Result<()> {
     if contract_state.is_halted {
-        return err!(ErrorCode::ContractHalted)
+        return err!(ErrorCode::ContractHalted);
     }
     if contract_state.is_halted_deposit {
         return err!(ErrorCode::ContractDepositHalted);
@@ -39,7 +39,7 @@ pub fn unrestricted_trading_phase(contract_state: &ContractState) -> Result<()> 
 // Asserts the Contract is still accepting Deposit's
 pub fn settling_mode(contract_state: &ContractState) -> Result<()> {
     if !contract_state.is_settling {
-        return err!(ErrorCode::MaturityNotReached)
+        return err!(ErrorCode::MaturityNotReached);
     }
     Ok(())
 }

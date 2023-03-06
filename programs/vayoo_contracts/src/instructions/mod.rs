@@ -22,6 +22,9 @@ pub use short_user::*;
 pub mod close_short_user;
 pub use close_short_user::*;
 
+pub mod mm_settle_long;
+pub use mm_settle_long::*;
+
 pub mod user_settle_long;
 pub use user_settle_long::*;
 

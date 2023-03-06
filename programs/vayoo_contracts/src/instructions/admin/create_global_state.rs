@@ -5,10 +5,7 @@ use std::mem::size_of;
 // local
 use crate::{constants::*, states::global_state::GlobalState};
 
-pub fn handle(
-    ctx: Context<CreateGlobalState>,
-    bump: u8
-) -> Result<()> {
+pub fn handle(ctx: Context<CreateGlobalState>, bump: u8) -> Result<()> {
     msg!("INITIALIZING GLOBAL STATE");
 
     let global_state = &mut ctx.accounts.global_state;

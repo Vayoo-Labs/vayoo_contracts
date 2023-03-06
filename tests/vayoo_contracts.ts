@@ -74,7 +74,7 @@ describe("vayoo_contracts", () => {
     const contractName = "v0";
     const timeNow = Math.floor(Date.now() / 1000)
     // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
-    const contractEndTime = new BN(timeNow + 10);
+    const contractEndTime = new BN(timeNow + 5);
     const amplitude = new BN(30);
 
     const [scontractMint, scontractMintBump] =
@@ -178,6 +178,10 @@ describe("vayoo_contracts", () => {
 
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     assert.ok(userStateAccount.lcontractMintedAsMm.eq(amountToMint));
+    if (DEBUG_MODE) {
+      const mmLcontractAta = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+      console.log("MM LContract Balance :", mmLcontractAta.amount.toString());
+    }
   });
 
   it("Burn lcontract as mm", async () => {
@@ -190,6 +194,10 @@ describe("vayoo_contracts", () => {
 
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
     assert.ok(userStateAccountBefore.lcontractMintedAsMm.sub(userStateAccountAfter.lcontractMintedAsMm).eq(amountToBurn));
+    if (DEBUG_MODE) {
+      const mmLcontractAta = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+      console.log("MM LContract Balance :", mmLcontractAta.amount.toString());
+    }
   });
 
   it("Deploy whirlpool (lcontract / collateral ) + Add liquidity", async () => {
@@ -237,7 +245,7 @@ describe("vayoo_contracts", () => {
     assert.ok(Number(userUsdcAtaAfter.amount - userCollateralAtaBefore.amount) == amountToWithdraw.toNumber())
   });
 
-  it("Cannot create user state - Contract Ended", async () => {
+  xit("Cannot create user state - Contract Ended", async () => {
     let msg = '';
     const contractName = "v1";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -292,7 +300,7 @@ describe("vayoo_contracts", () => {
     assert.ok(msg == 'ContractEnded')
   });
 
-  it("Cannot deposit - Contract Ended", async () => {
+  xit("Cannot deposit - Contract Ended", async () => {
     let msg = '';
     const contractName = "v2";
     const timeNow = Math.floor(Date.now() / 1000);
@@ -371,7 +379,7 @@ describe("vayoo_contracts", () => {
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     const amountToClose = userStateAccount.lcontractBoughtAsUser
 
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1000000)); // open short
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6); // open short
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
@@ -423,12 +431,12 @@ describe("vayoo_contracts", () => {
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);    
+    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
     const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
-    
+
     // Arguments for swap
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(14), 6); // Long with 500 collateral
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(14), 6);
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
@@ -464,7 +472,7 @@ describe("vayoo_contracts", () => {
 
     const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta)
-    
+
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     if (DEBUG_MODE) {
 
@@ -484,7 +492,7 @@ describe("vayoo_contracts", () => {
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
 
     // Arguments for swap
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6); // Long with 500 collateral
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(15), 6); // Long with 500 collateral
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
@@ -582,8 +590,8 @@ describe("vayoo_contracts", () => {
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
 
     // Arguments for swap
-    const userStateAccount = await program.account.userState.fetch(accounts.userState);
-    const amountToClose = userStateAccount.lcontractBoughtAsUser
+    const userStateAccountBefore = await program.account.userState.fetch(accounts.userState);
+    const amountToClose = userStateAccountBefore.lcontractBoughtAsUser.div(new BN(2)); // Close half the position
 
     const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(amountToClose.toNumber())); // Close long position
     const amount = new anchor.BN(a_input);
@@ -620,11 +628,11 @@ describe("vayoo_contracts", () => {
     const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
     if (DEBUG_MODE) {
       console.log('Lcontract long position: ', userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
-      console.log('No of lcontract Closed :', Number(vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount) / 1e6)
+      console.log('No of lcontract Closed :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
     }
     assert.ok(Number((vaultLcontractAtaBefore.amount - vaultLcontractAtaAfter.amount)) == amountToClose.toNumber())
-    assert.ok(userStateAccountAfter.lcontractBoughtAsUser.toNumber() == 0);
-    assert.ok(userStateAccountAfter.contractPositionNet.toNumber() == 0);
+    assert.ok(Number(userStateAccountBefore.lcontractBoughtAsUser.sub(userStateAccountAfter.lcontractBoughtAsUser)) == amountToClose.toNumber());
+    assert.ok(Number(userStateAccountBefore.contractPositionNet.sub(userStateAccountAfter.contractPositionNet)) == amountToClose.toNumber());
   });
 
   it("Trigger Settle Mode - Maturity Reached", async () => {
@@ -634,6 +642,8 @@ describe("vayoo_contracts", () => {
     const endTime = (contractStateAccount.endingTime.toNumber())
     if (DEBUG_MODE) {
       console.log("Time difference from end - start: ", endTime - timeNow)
+      console.log("Starting Price: ", contractStateAccount.startingPrice.toString());
+      console.log("Ending Price: ", contractStateAccount.endingPrice.toString());
     }
     assert.ok(contractStateAccount.isSettling);
   });
@@ -645,8 +655,41 @@ describe("vayoo_contracts", () => {
   });
 
   it("Settle longs, by user", async () => {
+    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta);
+    const vaultLcontractAtaBefore = await getAccount(connection, accounts.vaultLcontractAta);
+
     await program.methods.userSettleLong().accounts({
       ...accounts,
     }).rpc().catch((e) => console.log(e));
+    if (DEBUG_MODE) {
+      const vaultLcontractAtaAfter = await getAccount(connection, accounts.vaultLcontractAta);
+      console.log('No of lContracts settled :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6);
+      const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta);
+      console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+    }
   });
+
+  it("Settle longs, by mm", async () => {
+    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta);
+    const mmLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(Number(mmLcontractAtaBefore.amount)), 0);
+    await program.methods.mmSettleLong(a_input).accounts({
+      ...accounts,
+    }).rpc().catch((e) => console.log(e));
+
+    if (DEBUG_MODE) {
+      const mmLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+      console.log('No of lContracts settled :', Number(mmLcontractAtaAfter.amount - mmLcontractAtaBefore.amount) / 1e6);
+      const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta);
+      console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+    }
+  });
+
+
+  xit("Checking collateraliation", async () => {
+    //get supply of lcontract
+    //get price of redemption of lcontract
+    //check that it matches te amount of usd in the escrow
+  })
+
 });

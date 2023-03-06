@@ -34,4 +34,6 @@ pub enum ErrorCode {
     MaturityNotReached,
     #[msg("Already Settled")]
     AlreadySettled,
+    #[msg("Leaves Vault Unhealthy short")]
+    ShortLeaveUnhealthy,
 }

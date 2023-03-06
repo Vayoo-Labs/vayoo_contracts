@@ -4,15 +4,15 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use std::mem::size_of;
 
 //local imports
-use crate::states::{contract_state::ContractState, PriceFeed};
 use crate::errors::ErrorCode;
+use crate::states::{contract_state::ContractState, PriceFeed};
 
 pub fn handle(
     ctx: Context<InitializeContract>,
     contract_name: String,
     bump: u8,
     ending_time: u64,
-    limiting_amplitude:u64,
+    limiting_amplitude: u64,
 ) -> Result<()> {
     //[Medium] Initialize mint of the token
     msg!("INITIALIZING WEEKLY CONTRACT");
@@ -32,17 +32,20 @@ pub fn handle(
 
     //Get price from pyth and write it in the account
     contract_state.pyth_feed_id = ctx.accounts.pyth_feed.key();
-    let pyth_feed_price = ctx.accounts.pyth_feed
-            .get_price_no_older_than(current_timestamp, 60)
-            .ok_or(ErrorCode::PythOffline)?;
-    msg!(&format!("Initializing at  {}", pyth_feed_price.price) );
+    let pyth_feed_price = ctx
+        .accounts
+        .pyth_feed
+        .get_price_no_older_than(current_timestamp, 60)
+        .ok_or(ErrorCode::PythOffline)?;
+    msg!(&format!("Initializing at  {}", pyth_feed_price.price));
     contract_state.starting_price = pyth_feed_price.price as u64;
 
     //Initialize other stuff
-    contract_state.limiting_amplitude=limiting_amplitude;
+    contract_state.limiting_amplitude = limiting_amplitude;
     contract_state.starting_time = current_timestamp as u64;
     contract_state.ending_time = ending_time;
-    
+    contract_state.pyth_price_multiplier = 1000000000;
+
     Ok(())
 }
 
