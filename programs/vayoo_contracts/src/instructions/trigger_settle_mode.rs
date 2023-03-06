@@ -29,7 +29,7 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
         contract_state.is_halted_trading = true;
         Ok(())
     } else {
-        return err!(ErrorCode::MaturityNotReached);
+        err!(ErrorCode::MaturityNotReached)
     }
 }
 

@@ -27,7 +27,7 @@ pub struct CreateGlobalState<'info> {
     #[account(
         init,
         payer = authority,
-        seeds = [GLOBAL_STATE_SEED.as_ref()],
+        seeds = [GLOBAL_STATE_SEED],
         bump,
         space = 8 + size_of::<GlobalState>()
     )]
