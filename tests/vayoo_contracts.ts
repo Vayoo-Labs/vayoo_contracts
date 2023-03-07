@@ -13,7 +13,7 @@ import { addLiquidity, createWhirlpool } from "./whirlpoolUtils";
 import { ORCA_WHIRLPOOL_PROGRAM_ID } from "./whirlpoolUtils/utils/constants";
 import { createAndMintToAssociatedTokenAccount, createMint } from "./whirlpoolUtils/utils/token";
 
-const DEBUG_MODE = false; // If true, log useful info accross the tests on the console
+const DEBUG_MODE = true; // If true, log useful info accross the tests on the console
 
 describe("vayoo_contracts", () => {
   const provider = anchor.AnchorProvider.env();
@@ -107,7 +107,8 @@ describe("vayoo_contracts", () => {
     if (DEBUG_MODE) {
       console.log("L Contract Mint Key: ", lcontractMint.toString())
       console.log("S Contract Mint Key: ", scontractMint.toString())
-      console.log("Contract State Key: ", contractStateKey.toString())
+      console.log("Contract Starting Price: ", contractStateAccount.startingPrice.toString())
+      console.log("Contract Expo: ", contractStateAccount.pythPriceMultiplier.toString())
     }
 
     assert.ok(contractStateAccount.isHalted == false);

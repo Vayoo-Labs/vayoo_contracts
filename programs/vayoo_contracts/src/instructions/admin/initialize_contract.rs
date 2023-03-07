@@ -44,7 +44,11 @@ pub fn handle(
     contract_state.limiting_amplitude = limiting_amplitude;
     contract_state.starting_time = current_timestamp as u64;
     contract_state.ending_time = ending_time;
-    contract_state.pyth_price_multiplier = 1000000000;
+    msg!(&format!("Expo at  {}", pyth_feed_price.expo));
+    let mut multiplicator=(-pyth_feed_price.expo) as u32;
+    let base=10 as u32;
+    multiplicator=base.pow(multiplicator);
+    contract_state.pyth_price_multiplier = multiplicator as u64;
 
     Ok(())
 }
