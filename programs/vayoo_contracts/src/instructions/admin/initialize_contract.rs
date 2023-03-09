@@ -44,7 +44,8 @@ pub fn handle(
     contract_state.limiting_amplitude = limiting_amplitude;
     contract_state.starting_time = current_timestamp as u64;
     contract_state.ending_time = ending_time;
-    msg!(&format!("Expo at  {}", pyth_feed_price.expo));
+    contract_state.global_current_locked_usdc=0;
+    contract_state.global_current_issued_lcontract=0;
     let mut multiplicator=(-pyth_feed_price.expo) as u32;
     let base=10 as u32;
     multiplicator=base.pow(multiplicator);

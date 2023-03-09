@@ -29,7 +29,7 @@ pub fn handle(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
     // Update State
     user_state.usdc_deposited -= amount;
     contract_state.current_tvl_usdc -= amount;
-
+    user_state.usdc_free -= amount;
     Ok(())
 }
 

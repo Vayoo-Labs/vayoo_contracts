@@ -66,23 +66,28 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     token::burn(cpi_ctx, amount)?;
 
     let user_state = &mut ctx.accounts.user_state;
+    let contract_state = &mut ctx.accounts.contract_state;
     // Update User State
     user_state.usdc_collateral_locked_as_mm -= amount_to_send;
     user_state.lcontract_minted_as_mm -= amount;
+    user_state.contract_position_net = user_state.contract_position_net+(amount as i64) ;
 
+    contract_state.global_current_locked_usdc-= amount_to_send;
+    contract_state.global_current_issued_lcontract-= amount;
+    
     // Update Contract State
 
-    let vault31 = ctx.accounts.mm_locked_scontract_ata.to_account_info();
-    let vault32 = ctx.accounts.vault_locked_collateral_ata.to_account_info();
-    let vault31_final = token::accessor::amount(&vault31)?;
-    let vault32_final = token::accessor::amount(&vault32)?;
-    let needed_collateral = vault31_final
+    //Making sure the user vault is well collateralized
+    let vault_final_scontract = ctx.accounts.mm_locked_scontract_ata.to_account_info();
+    let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
+    let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
+    let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
+    let needed_collateral = vault_final_scontract_value
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
-    if needed_collateral > vault32_final {
+    if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
-
     Ok(())
 }
 

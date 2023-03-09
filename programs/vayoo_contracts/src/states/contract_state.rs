@@ -29,6 +29,8 @@ pub struct ContractState {
     pub cap_product: u64,
     pub current_tvl_usdc: u64,
     pub current_tvl_underlying: u64,
+    pub global_current_locked_usdc: u64,
+    pub global_current_issued_lcontract: u64,
 
     pub reserved: [u64; 15],
 }

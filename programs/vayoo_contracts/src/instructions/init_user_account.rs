@@ -17,7 +17,7 @@ pub fn handle(ctx: Context<InitUser>, bump: u8) -> Result<()> {
     user_state.issettled = false;
     user_state.authority = ctx.accounts.user_authority.key();
     user_state.contract_account = ctx.accounts.contract_state.key();
-
+    user_state.usdc_free=0;
     Ok(())
 }
 

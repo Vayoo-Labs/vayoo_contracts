@@ -14,6 +14,7 @@ pub fn handle(
     a_to_b: bool,
 ) -> Result<()> {
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
+    let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
 
     let token_account_a;
     let token_account_b;
@@ -66,7 +67,13 @@ pub fn handle(
     // Updating State
     ctx.accounts.vault_lcontract_ata.reload()?;
     let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
-    let amount_swapped = lcontract_bal_after - lcontract_bal_before;
+    let amount_swapped = lcontract_bal_after.checked_sub(lcontract_bal_before).unwrap();
+
+    ctx.accounts.vault_free_collateral_ata.reload()?;
+    let free_usdc_bal_after = ctx.accounts.vault_free_collateral_ata.amount;
+    let usdc_spent =  free_usdc_bal_before.checked_sub(free_usdc_bal_after).unwrap();
+
+    user_state.usdc_free=user_state.usdc_free.checked_sub(usdc_spent).unwrap();
     user_state.contract_position_net += amount_swapped as i64;
     user_state.lcontract_bought_as_user += amount_swapped;
 

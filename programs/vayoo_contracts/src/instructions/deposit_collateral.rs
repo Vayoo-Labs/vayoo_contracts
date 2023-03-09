@@ -22,6 +22,7 @@ pub fn handle(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
 
     // Update State
     user_state.usdc_deposited += amount;
+    user_state.usdc_free += amount;
     contract_state.current_tvl_usdc += amount;
 
     Ok(())

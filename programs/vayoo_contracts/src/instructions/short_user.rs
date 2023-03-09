@@ -122,22 +122,31 @@ pub fn handle(
     let cpi_ctx =
         CpiContext::new_with_signer(cpi_program, cpi_accounts_transfer_to_locked, signer_seeds);
     token::transfer(cpi_ctx, amount_to_send_tolocked)?;
-
+    let amplitude=ctx.accounts.contract_state.limiting_amplitude;
     let user_state = &mut ctx.accounts.user_state;
     // Update User State
     user_state.usdc_collateral_locked_as_user += amount
-        .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
+        .checked_mul(amplitude)
         .unwrap();
     user_state.scontract_sold_as_user += amount;
+    user_state.contract_position_net = user_state.contract_position_net.checked_sub(amount as i64).unwrap() ;
 
-    let vault31 = ctx.accounts.vault_locked_scontract_ata.to_account_info();
-    let vault32 = ctx.accounts.vault_locked_collateral_ata.to_account_info();
-    let vault31_final = token::accessor::amount(&vault31)?;
-    let vault32_final = token::accessor::amount(&vault32)?;
-    let needed_collateral = vault31_final
+    let contract_state = &mut ctx.accounts.contract_state;
+    contract_state.global_current_locked_usdc+= amount
+    .checked_mul(amplitude)
+    .unwrap();
+    contract_state.global_current_issued_lcontract+= amount;
+
+
+    //Making sure the user vault is well collateralized
+    let vault_final_scontract = ctx.accounts.vault_locked_scontract_ata.to_account_info();
+    let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
+    let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
+    let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
+    let needed_collateral = vault_final_scontract_value
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
-    if needed_collateral > vault32_final {
+    if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
 

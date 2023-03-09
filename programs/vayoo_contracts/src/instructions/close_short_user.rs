@@ -135,15 +135,24 @@ pub fn handle(
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
     user_state.scontract_sold_as_user -= amount_bought_back;
+    user_state.contract_position_net = user_state.contract_position_net + (amount_bought_back as i64) ;
 
-    let vault31 = ctx.accounts.vault_locked_scontract_ata.to_account_info();
-    let vault32 = ctx.accounts.vault_locked_collateral_ata.to_account_info();
-    let vault31_final = token::accessor::amount(&vault31)?;
-    let vault32_final = token::accessor::amount(&vault32)?;
-    let needed_collateral = vault31_final
+    let amplitude=ctx.accounts.contract_state.limiting_amplitude;
+    let contract_state = &mut ctx.accounts.contract_state;
+    contract_state.global_current_locked_usdc-= amount_bought_back
+    .checked_mul(amplitude)
+    .unwrap();
+    contract_state.global_current_issued_lcontract-= amount_bought_back;
+
+    //Making sure the user vault is well collateralized
+    let vault_final_scontract = ctx.accounts.vault_locked_scontract_ata.to_account_info();
+    let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
+    let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
+    let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
+    let needed_collateral = vault_final_scontract_value
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
-    if needed_collateral > vault32_final {
+    if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
 
