@@ -28,30 +28,28 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         //0 lcontracts locked on the ata
         //The setteling process for the short is DIFFERENT FROM THE LONG:
 
-        let limit_bound = contract_state
+        let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier).unwrap();
+    
+        let midrange = contract_state
             .limiting_amplitude
-            .checked_div(2)
-            .unwrap()
             .checked_mul(contract_state.pyth_price_multiplier)
+            .unwrap()
+            .checked_div(2)
             .unwrap();
-        //pnl_per_contract_short is initialized at upper bound, thats step 1
-        let initial_ending_price = contract_state.starting_price + limit_bound;
-        //case where ending price above upper bound (and shorter pnl is 0)
-        let real_ending_price = min(contract_state.ending_price, initial_ending_price);
-        //the real pnl : step 2
-        let pnl_per_contract_short = initial_ending_price.checked_sub(real_ending_price).unwrap();
-        let limited_pnl_per_contract_short = min(
-            pnl_per_contract_short,
-            contract_state
-                .limiting_amplitude
-                .checked_mul(contract_state.pyth_price_multiplier)
-                .unwrap(),
-        );
+    
+        let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
+        let upper_bound=contract_state.starting_price+midrange;
+        let mut final_price=contract_state.ending_price;
+        if final_price>upper_bound{
+            final_price=upper_bound;
+        }
+        if final_price<lower_bound{
+            final_price=lower_bound;
+        }
+        let mut limited_pnl_per_contract_short=upper_bound.checked_sub(final_price).unwrap();
+        limited_pnl_per_contract_short = min(limited_pnl_per_contract_short, adapted_contract_limiting_amplitude);
 
-        //midrange=contract_limiting_bound_amplitude/2
-        //payout_1_scontract=(starting_price+midrange) -ending_price
-        //if payout_1_scontract>contract_limiting_bound_amplitude -> payout_1_lcontract=contract_limiting_bound_amplitude
-        //if payout_1_scontract<0 -> payout_1_lcontract=0
+
         let gains_shorter = user_state
             .scontract_sold_as_user
             .checked_mul(limited_pnl_per_contract_short)
@@ -107,39 +105,34 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         msg!("test: {}", user_state.scontract_sold_as_user);
         token::burn(cpi_ctx, user_state.scontract_sold_as_user)?;
 
-        //amount_gains=amount_of_scontract_locked*payout_1_scontract
-        //amount_to_send_to_send_to_shared_escrow= amountof$inlocked-amount_gains
-        //amount_to_send from locked to free =amount_gains
-        //burn amount_of_scontract_locked lcontracts that is locked in the scontract_locked_ata
+
     }
 
     if user_state.lcontract_minted_as_mm > 0 {
         //if false {
 
-        let limit_bound = contract_state
+        let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier)
+        .unwrap();
+    
+        let midrange = contract_state
             .limiting_amplitude
-            .checked_div(2)
-            .unwrap()
             .checked_mul(contract_state.pyth_price_multiplier)
+            .unwrap()
+            .checked_div(2)
             .unwrap();
-        //pnl_per_contract_short is initialized at upper bound, thats step 1
-        let initial_ending_price = contract_state.starting_price + limit_bound;
-        //case where ending price above upper bound (and shorter pnl is 0)
-        let real_ending_price = min(contract_state.ending_price, initial_ending_price);
-        //the real pnl : step 2
-        let pnl_per_contract_short = initial_ending_price.checked_sub(real_ending_price).unwrap();
-        let limited_pnl_per_contract_short = min(
-            pnl_per_contract_short,
-            contract_state
-                .limiting_amplitude
-                .checked_mul(contract_state.pyth_price_multiplier)
-                .unwrap(),
-        );
+    
+        let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
+        let upper_bound=contract_state.starting_price+midrange;
+        let mut final_price=contract_state.ending_price;
+        if final_price>upper_bound{
+            final_price=upper_bound;
+        }
+        if final_price<lower_bound{
+            final_price=lower_bound;
+        }
+        let mut limited_pnl_per_contract_short=upper_bound.checked_sub(final_price).unwrap();
+        limited_pnl_per_contract_short = min(limited_pnl_per_contract_short, adapted_contract_limiting_amplitude);
 
-        //midrange=contract_limiting_bound_amplitude/2
-        //payout_1_scontract=(starting_price+midrange) -ending_price
-        //if payout_1_scontract>contract_limiting_bound_amplitude -> payout_1_lcontract=contract_limiting_bound_amplitude
-        //if payout_1_scontract<0 -> payout_1_lcontract=0
         let gains_shorter = user_state
             .lcontract_minted_as_mm
             .checked_mul(limited_pnl_per_contract_short)
@@ -200,16 +193,21 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         token::burn(cpi_ctx, user_state.lcontract_minted_as_mm)?;
     }
 
-    let vault31 = ctx.accounts.vault_locked_scontract_ata.to_account_info();
-    let vault32 = ctx.accounts.vault_locked_collateral_ata.to_account_info();
-    let vault31_final = token::accessor::amount(&vault31)?;
-    let vault32_final = token::accessor::amount(&vault32)?;
-    let needed_collateral = vault31_final
+
+
+    //Making sure the user vault is well collateralized
+    let vault_final_scontract = ctx.accounts.vault_locked_scontract_ata.to_account_info();
+    let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
+    let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
+    let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
+    let needed_collateral = vault_final_scontract_value
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
-    if needed_collateral > vault32_final {
+    if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
+
+    
 
     Ok(())
 }
