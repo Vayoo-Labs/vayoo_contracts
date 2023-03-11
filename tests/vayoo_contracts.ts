@@ -409,7 +409,6 @@ describe("vayoo_contracts", () => {
         tickArray2: tickArrays[2].publicKey,
         oracle: whirlpool_oracle_pubkey,
         vaultLcontractAta: vaultLcontractAtaBefore.address,
-        vaultScontractAta: vaultScontractAtaBefore.address,
       })
       .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
