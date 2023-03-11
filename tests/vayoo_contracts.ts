@@ -389,7 +389,8 @@ describe("vayoo_contracts", () => {
     const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-
+    console.log(a_to_b)
+    console.log("a_to_b openshort")
     await program.methods
       .shortUser(
         amount,
@@ -444,6 +445,8 @@ describe("vayoo_contracts", () => {
 
     // Conditional Swap Direction, Super Important
     const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
+    console.log(a_to_b)
+    console.log("a_to_b close short")
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
 
@@ -502,7 +505,8 @@ describe("vayoo_contracts", () => {
     const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-
+    console.log(a_to_b)
+    console.log("a_to_b")
     await program.methods
       .longUser(
         amount,
@@ -603,7 +607,8 @@ describe("vayoo_contracts", () => {
     const a_to_b = !poolData.tokenMintA.equals(accounts.collateralMint);
     const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
     const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-
+    console.log(a_to_b)
+    console.log("a_to_b")
     await program.methods
       .closeLongUser(
         amount,

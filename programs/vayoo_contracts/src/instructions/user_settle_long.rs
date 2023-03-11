@@ -29,17 +29,28 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
     //1.Settle the long side
     if user_state.lcontract_bought_as_user > 0 {
         //for this condition, we should also check the amounts of tokens in the token accounts to double check
+        let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier)
+        .unwrap();
 
         let midrange = contract_state
             .limiting_amplitude
-            .checked_div(2)
-            .unwrap()
             .checked_mul(contract_state.pyth_price_multiplier)
+            .unwrap()
+            .checked_div(2)
             .unwrap();
-        let mut pnl_lcontract = contract_state.starting_price.checked_sub(midrange).unwrap();
-        let real_ending_price = max(pnl_lcontract, contract_state.ending_price);
-        pnl_lcontract = real_ending_price.checked_sub(pnl_lcontract).unwrap();
-        pnl_lcontract = min(pnl_lcontract, contract_state.limiting_amplitude);
+
+        let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
+        let upper_bound=contract_state.starting_price+midrange;
+        let mut final_price=contract_state.ending_price;
+        if final_price>upper_bound{
+            final_price=upper_bound;
+        }
+        if final_price<lower_bound{
+            final_price=lower_bound;
+        }
+        
+        let mut pnl_lcontract = final_price.checked_sub(lower_bound).unwrap();
+        pnl_lcontract = min(pnl_lcontract, adapted_contract_limiting_amplitude);
 
         //if payout_1_scontract>contract_limiting_bound_amplitude -> payout_1_lcontract=contract_limiting_bound_amplitude
         //if payout_1_scontract<0 -> payout_1_lcontract=0
