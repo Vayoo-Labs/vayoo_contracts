@@ -36,4 +36,10 @@ pub enum ErrorCode {
     AlreadySettled,
     #[msg("Leaves Vault Unhealthy short")]
     ShortLeaveUnhealthy,
+    #[msg("Need to close short before opening long")]
+    CloseShortBeforeLong,
+    #[msg("Need to close short before opening long")]
+    CloseLongBeforeShort,
+
+    
 }

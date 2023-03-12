@@ -216,7 +216,8 @@ describe("vayoo_contracts", () => {
     const poolPrice = PriceMath.sqrtPriceX64ToPrice(poolData.sqrtPrice, 6, 6)
     if (DEBUG_MODE) {
       console.log("Pool Key: ", whirlpoolKey.toString());
-      console.log("Pool Price: ", poolPrice.toFixed(2));
+      console.log("Pool Price1 : ", poolPrice);
+      console.log("Pool Price2 : ", 1/poolPrice.toNumber());
       console.log('Token A is LContract', poolData.tokenMintA.equals(accounts.lcontractMint))
     }
 
@@ -371,7 +372,7 @@ describe("vayoo_contracts", () => {
     const poolKey = accounts.whirlpoolKey;
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
-    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const vaultScontractAtaBefore = await getAccount(connection, accounts.vaultLockedScontractAta);
     const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
@@ -413,16 +414,19 @@ describe("vayoo_contracts", () => {
       })
       .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
-    const vaultScontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const vaultScontractAtaAfter = await getAccount(connection, accounts.vaultLockedScontractAta);
     const collateral_after = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
     const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta)
 
 
     if (DEBUG_MODE) {
-      console.log('No of scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log('No of new scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount)/ 1e6 )
       console.log('Free acc change :', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
       console.log('Locked acc change :', Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)
+      let amount_sold_in_pool=(Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)+(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
+      let price_deduction=amount_sold_in_pool/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log("Price paid to short in pool",price_deduction)
     }
   });
 
@@ -432,7 +436,7 @@ describe("vayoo_contracts", () => {
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-    const vaultScontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const vaultScontractAtaBefore = await getAccount(connection, accounts.vaultLockedScontractAta);
     const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
 
@@ -471,7 +475,7 @@ describe("vayoo_contracts", () => {
         vaultScontractAta: vaultScontractAtaBefore.address,
       })
       .rpc().catch((e) => { console.log(e) });
-    const vaultScontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.scontractMint, accounts.userState, true);
+    const vaultScontractAtaAfter = await getAccount(connection, accounts.vaultLockedScontractAta);
 
     const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta)
@@ -479,10 +483,12 @@ describe("vayoo_contracts", () => {
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     if (DEBUG_MODE) {
 
-      console.log('No of scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log('No of scontract :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount)/ 1e6)
       console.log('Free acc change :', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
       console.log('Locked acc change :', Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)
-
+      let amount_sold_in_pool=(Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)+(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
+      let price_deduction=amount_sold_in_pool/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount)/ 1e6)
+      console.log("Price paid to close short in pool",price_deduction)
     }
   });
 
@@ -533,6 +539,7 @@ describe("vayoo_contracts", () => {
     if (DEBUG_MODE) {
       console.log('Lcontract bought: ', userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
       console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
+      
     }
     assert.ok(Number((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount)) == userStateAccountAfter.lcontractBoughtAsUser.toNumber());
     assert.ok(userStateAccountAfter.contractPositionNet.toNumber() - userStateAccountBefore.contractPositionNet.toNumber() == userStateAccountAfter.lcontractBoughtAsUser.toNumber());
@@ -655,9 +662,37 @@ describe("vayoo_contracts", () => {
   });
 
   it("Settle shorts and mm, by admin", async () => {
+
+    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta);
+  
+    const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta);
+
+    const vaultScontractAtaBefore = await getAccount(connection, accounts.vaultLockedScontractAta);  
+
+    const vaultEscrowAtaBefore = await getAccount(connection, accounts.escrowVaultCollateral);
+
     await program.methods.adminSettle().accounts({
       ...accounts,
     }).signers([superUser]).rpc().catch((e) => console.log(e));
+
+    const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta);
+    const vaultLockedCollateralAtaAfter = await getAccount(connection, accounts.vaultLockedCollateralAta);
+    const vaultScontractAtaAfter = await getAccount(connection, accounts.vaultLockedScontractAta);  
+    const vaultEscrowAtaAfter = await getAccount(connection, accounts.escrowVaultCollateral);
+
+    if (DEBUG_MODE) {
+
+      console.log('No of SContracts settled :', Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6);
+      console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+      console.log('Change in locked collateral vault: ', Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6);
+      console.log('Change in escrow collateral vault: ', Number(vaultEscrowAtaAfter.amount - vaultEscrowAtaBefore.amount) / 1e6);
+      
+      let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
+      console.log('implied_setteling_price settle long user: ', implied_setteling_price);
+    
+    }
+
+
   });
 
   it("Settle longs, by user", async () => {
@@ -672,22 +707,30 @@ describe("vayoo_contracts", () => {
       console.log('No of lContracts settled :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6);
       const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta);
       console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+      let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
+      console.log('implied_setteling_price settle long us: ', implied_setteling_price);
+    
     }
   });
 
   it("Settle longs, by mm", async () => {
-    const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta);
+    
+    const vaultFreeCollateralAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
     const mmLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
     const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(Number(mmLcontractAtaBefore.amount)), 0);
+    accounts.mmCollateralWalletAta =vaultFreeCollateralAtaBefore.address;
     await program.methods.mmSettleLong(a_input).accounts({
-      ...accounts,
+      ...accounts
     }).rpc().catch((e) => console.log(e));
-
+    const vaultFreeCollateralAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.collateralMint, testUser.publicKey, true);
+    const mmLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
+    
     if (DEBUG_MODE) {
-      const mmLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
-      console.log('No of lContracts settled :', Number(mmLcontractAtaAfter.amount - mmLcontractAtaBefore.amount) / 1e6);
-      const vaultFreeCollateralAtaAfter = await getAccount(connection, accounts.vaultFreeCollateralAta);
-      console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+    console.log('No of lContracts settled :', Number(mmLcontractAtaAfter.amount - mmLcontractAtaBefore.amount) / 1e6);
+    console.log('Change in free collateral vault: ', Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6);
+    let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(mmLcontractAtaAfter.amount - mmLcontractAtaBefore.amount) / 1e6)
+    console.log('implied_setteling_price: ', implied_setteling_price);
+    
     }
   });
 

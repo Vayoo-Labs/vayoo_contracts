@@ -48,7 +48,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         }
         let mut limited_pnl_per_contract_short=upper_bound.checked_sub(final_price).unwrap();
         limited_pnl_per_contract_short = min(limited_pnl_per_contract_short, adapted_contract_limiting_amplitude);
-
+        msg!(&format!("pnl_scontract  {}", limited_pnl_per_contract_short));
 
         let gains_shorter = user_state
             .scontract_sold_as_user

@@ -13,13 +13,17 @@ pub fn handle(
     amount_specified_is_input: bool,
     a_to_b: bool,
 ) -> Result<()> {
+
     let _lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
 
     let token_account_a;
     let token_account_b;
 
     let user_state = &ctx.accounts.user_state;
-
+    
+    ///if user_state.scontract_sold_as_user > 0 {
+    ///    return err!(ErrorCode::CloseLongBeforeShort);
+    //}
     let signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
         user_state.authority.as_ref(),
