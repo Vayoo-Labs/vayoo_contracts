@@ -25,5 +25,5 @@ pub struct UserState {
     pub usdc_withdrawn: u64,
     pub usdc_free: u64,
 
-    pub reserved: [u64; 15],
+    pub reserved: [u64; 14],
 }

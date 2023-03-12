@@ -496,6 +496,7 @@ describe("vayoo_contracts", () => {
 
   it("Long Contract - test User", async () => {
     // Getting all accounts for the swap
+    const userStateAccountBefore = await program.account.userState.fetch(accounts.userState);
     const poolKey = accounts.whirlpoolKey;
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
@@ -535,14 +536,14 @@ describe("vayoo_contracts", () => {
       })
       .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
-    const userStateAccount = await program.account.userState.fetch(accounts.userState);
+    const userStateAccountAfter = await program.account.userState.fetch(accounts.userState);
     if (DEBUG_MODE) {
-      console.log('Lcontract bought: ', userStateAccount.lcontractBoughtAsUser.toNumber() / 1e6)
+      console.log('Lcontract bought: ', userStateAccountAfter.lcontractBoughtAsUser.toNumber() / 1e6)
       console.log('No of lcontract Longed :', Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
       
     }
-    assert.ok(Number((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount)) == userStateAccount.lcontractBoughtAsUser.toNumber());
-    assert.ok(userStateAccount.contractPositionNet.toNumber() == userStateAccount.lcontractBoughtAsUser.toNumber());
+    assert.ok(Number((vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount)) == userStateAccountAfter.lcontractBoughtAsUser.toNumber());
+    assert.ok(userStateAccountAfter.contractPositionNet.toNumber() - userStateAccountBefore.contractPositionNet.toNumber() == userStateAccountAfter.lcontractBoughtAsUser.toNumber());
   });
 
   it("Trying to Close Long position more than what's opened - test User", async () => {
