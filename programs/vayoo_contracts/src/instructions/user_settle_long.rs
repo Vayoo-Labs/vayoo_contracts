@@ -51,7 +51,7 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         
         let mut pnl_lcontract = final_price.checked_sub(lower_bound).unwrap();
         pnl_lcontract = min(pnl_lcontract, adapted_contract_limiting_amplitude);
-
+        msg!(&format!("pnl_lcontract  {}", pnl_lcontract));
         //if payout_1_scontract>contract_limiting_bound_amplitude -> payout_1_lcontract=contract_limiting_bound_amplitude
         //if payout_1_scontract<0 -> payout_1_lcontract=0
         let gains_longer = user_state

@@ -42,7 +42,7 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     
     let mut pnl_lcontract = final_price.checked_sub(lower_bound).unwrap();
     pnl_lcontract = min(pnl_lcontract, adapted_contract_limiting_amplitude);
-
+    msg!(&format!("pnl_lcontract  {}", pnl_lcontract));
     let gains_longer = amount_to_redeem
         .checked_mul(pnl_lcontract)
         .unwrap()
@@ -51,7 +51,7 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
 
     let cpi_accounts_transfer_pnl_long = Transfer {
         from: ctx.accounts.escrow_vault_collateral.to_account_info(),
-        to: ctx.accounts.vault_free_collateral_ata.to_account_info(),
+        to: ctx.accounts.mm_collateral_wallet_ata.to_account_info(),
         authority: ctx.accounts.contract_state.to_account_info(),
     };
 
@@ -88,12 +88,9 @@ pub struct MmSettleLong<'info> {
 
     )]
     pub contract_state: Box<Account<'info, ContractState>>,
-    #[account(
-        mut,
-        token::mint = contract_state.collateral_mint,
-        token::authority = user_state
-    )]
-    pub vault_free_collateral_ata: Box<Account<'info, TokenAccount>>,
+
+    #[account(mut)]
+    pub mm_collateral_wallet_ata: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub mm_lcontract_ata: Box<Account<'info, TokenAccount>>,
@@ -101,14 +98,6 @@ pub struct MmSettleLong<'info> {
     #[account(mut)]
     pub escrow_vault_collateral: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        mut,
-        seeds = [contract_state.key().as_ref(), user_authority.key().as_ref()],
-        bump,
-        constraint = user_authority.key() == user_state.authority @ ErrorCode::Unauthorized,
-        constraint = user_state.contract_account == contract_state.key() @ErrorCode::Invalid
-    )]
-    pub user_state: Box<Account<'info, UserState>>,
 
     #[account(mut)]
     pub lcontract_mint: Box<Account<'info, Mint>>,
@@ -118,5 +107,5 @@ pub struct MmSettleLong<'info> {
     // Programs and Sysvars
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
+    pub rent: Sysvar<'info, Rent>,  
 }

@@ -13,6 +13,9 @@ pub fn handle(
     amount_specified_is_input: bool,
     a_to_b: bool,
 ) -> Result<()> {
+
+
+    
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
 
@@ -20,7 +23,9 @@ pub fn handle(
     let token_account_b;
 
     let user_state = &mut ctx.accounts.user_state;
-
+    //if user_state.scontract_sold_as_user > 0 {
+    //    return err!(ErrorCode::CloseShortBeforeLong);
+    //}
     let signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
         user_state.authority.as_ref(),
