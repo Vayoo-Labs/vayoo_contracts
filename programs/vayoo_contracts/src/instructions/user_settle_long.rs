@@ -10,13 +10,13 @@ use crate::errors::ErrorCode;
 use crate::states::contract_state::ContractState;
 
 pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
-    let user_state = &ctx.accounts.user_state;
+    let user_state = &mut ctx.accounts.user_state;
     let contract_state = &ctx.accounts.contract_state;
 
     let user_signer_seeds: &[&[&[u8]]] = &[&[
-        ctx.accounts.user_state.contract_account.as_ref(),
-        ctx.accounts.user_state.authority.as_ref(),
-        &[ctx.accounts.user_state.bump],
+        user_state.contract_account.as_ref(),
+        user_state.authority.as_ref(),
+        &[user_state.bump],
     ]];
 
     let contract_signer_seeds: &[&[&[u8]]] = &[&[
@@ -79,7 +79,7 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         let cpi_accounts = Burn {
             mint: ctx.accounts.lcontract_mint.to_account_info(),
             from: ctx.accounts.vault_lcontract_ata.to_account_info(),
-            authority: ctx.accounts.user_state.to_account_info(),
+            authority: user_state.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, user_signer_seeds);
@@ -87,7 +87,8 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         token::burn(cpi_ctx, user_state.lcontract_bought_as_user)?;
     }
 
-    //and burn the lcontracts
+    //update user states
+    user_state.lcontract_bought_as_user = 0;
     Ok(())
 }
 
