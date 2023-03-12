@@ -1,5 +1,5 @@
-import { DecimalUtil } from "@orca-so/common-sdk";
-import { buildWhirlpoolClient, PDAUtil, PriceMath, SwapUtils, TickArrayUtil, WhirlpoolContext } from "@orca-so/whirlpools-sdk";
+import { DecimalUtil, Percentage } from "@orca-so/common-sdk";
+import { AccountFetcher, buildWhirlpoolClient, PDAUtil, PriceMath, swapQuoteByInputToken, swapQuoteByOutputToken, SwapUtils, TickArrayUtil, WhirlpoolContext } from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program, BN, web3 } from "@project-serum/anchor";
 import { getAccount, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token-v2";
@@ -21,6 +21,7 @@ describe("vayoo_contracts", () => {
   const program = anchor.workspace.VayooContracts as Program<VayooContracts>;
   const connection = program.provider.connection;
   const whirlpoolCtx = WhirlpoolContext.withProvider(provider, ORCA_WHIRLPOOL_PROGRAM_ID);
+  const orcaFetcher = new AccountFetcher(connection);
   const whirlpoolClient = buildWhirlpoolClient(whirlpoolCtx);
   const superUser = superUserKey.keypair;
   const testUser = testUserKey.keypair;
@@ -434,43 +435,41 @@ describe("vayoo_contracts", () => {
   it("Close Short Contract ", async () => {
     // Getting all accounts for the swap
     const poolKey = accounts.whirlpoolKey;
-    const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
+    const whirlpool = await whirlpoolClient.getPool(poolKey, true)
+    const whirlpoolData = whirlpool.getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
     const vaultScontractAtaBefore = await getAccount(connection, accounts.vaultLockedScontractAta);
     const vaultFreeCollateralAtaBefore = await getAccount(connection, accounts.vaultFreeCollateralAta)
     const vaultLockedCollateralAtaBefore = await getAccount(connection, accounts.vaultLockedCollateralAta)
-
-    // Arguments for swap
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(14), 6);
-    const amount = new anchor.BN(a_input);
-    const other_amount_threshold = new anchor.BN(0);
-    const amount_specified_is_input = true;
-
-    // Conditional Swap Direction, Super Important
-    const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
-    console.log(a_to_b)
-    console.log("a_to_b close short")
-    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
-    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-
+    
+    const outputTokenQuote = await swapQuoteByOutputToken(
+      whirlpool,
+      accounts.lcontractMint,
+      DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6),
+      Percentage.fromFraction(1, 10), // 0.1%
+      ORCA_WHIRLPOOL_PROGRAM_ID,
+      orcaFetcher,
+      true
+    );
+        
     await program.methods
       .closeShortUser(
-        amount,
-        other_amount_threshold,
-        sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
+        outputTokenQuote.amount,
+        outputTokenQuote.otherAmountThreshold,
+        outputTokenQuote.sqrtPriceLimit,
+        outputTokenQuote.amountSpecifiedIsInput,
+        outputTokenQuote.aToB,
       )
       .accounts({
         ...accounts,
         whirlpoolProgram: whirlpoolCtx.program.programId,
         whirlpool: poolKey,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
-        tickArray0: tickArrays[0].publicKey,
-        tickArray1: tickArrays[1].publicKey,
-        tickArray2: tickArrays[2].publicKey,
+        tokenVaultA: whirlpoolData.tokenVaultA,
+        tokenVaultB: whirlpoolData.tokenVaultB,
+        tickArray0: outputTokenQuote.tickArray0,
+        tickArray1: outputTokenQuote.tickArray1,
+        tickArray2: outputTokenQuote.tickArray2,
         oracle: whirlpool_oracle_pubkey,
         vaultLcontractAta: vaultLcontractAtaBefore.address,
         vaultScontractAta: vaultScontractAtaBefore.address,
