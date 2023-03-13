@@ -96,6 +96,7 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_bought_as_user).unwrap();
         contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_longer).unwrap();
         user_state.lcontract_bought_as_user = 0;
+        user_state.contract_position_net = 0;
         user_state.issettled = true;
         //Making sure the whole platform is well collateralized
         let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
