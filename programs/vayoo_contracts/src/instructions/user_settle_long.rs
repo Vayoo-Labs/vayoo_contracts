@@ -111,7 +111,15 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
             msg!("global_needed_collateral: {}", global_needed_collateral);
             msg!("global_current_locked_usdc: {}", contract_state_m.global_current_locked_usdc);
             return err!(ErrorCode::PlatformUnhealthy);
-        }
+    }
+
+
+    ctx.accounts.vault_lcontract_ata.reload()?;
+    let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
+    if (user_state.lcontract_bought_as_user != lcontract_bal_after ){
+        return err!(ErrorCode::ErrorAccounting);
+    }
+
     }
     Ok(())
 }

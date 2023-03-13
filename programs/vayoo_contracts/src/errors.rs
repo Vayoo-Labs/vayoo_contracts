@@ -44,4 +44,6 @@ pub enum ErrorCode {
     PlatformUnhealthy,
     #[msg("Contract not in settling mode")]
     NotSettling,
+    #[msg("Error in internal accounting")]
+    ErrorAccounting
 }
