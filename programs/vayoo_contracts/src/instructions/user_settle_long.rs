@@ -85,10 +85,35 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, user_signer_seeds);
         msg!("user settle burn: {}", user_state.lcontract_bought_as_user);
         token::burn(cpi_ctx, user_state.lcontract_bought_as_user)?;
+
+
+        let local_pyt_multiplier=contract_state.pyth_price_multiplier;
+        let contract_state_m = &mut ctx.accounts.contract_state;
+        //update user states
+        contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_bought_as_user).unwrap();
+        contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_longer).unwrap();
+        user_state.lcontract_bought_as_user = 0;
+        //Making sure the whole platform is well collateralized
+        let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
+
+        let global_needed_collateral = global_final_issued_contract
+        .checked_mul(pnl_lcontract)
+        .unwrap()
+        .checked_div(local_pyt_multiplier)
+        .unwrap();
+
+        if global_needed_collateral > contract_state_m.global_current_locked_usdc {
+            msg!("global_needed_collateral: {}", global_needed_collateral);
+            msg!("global_current_locked_usdc: {}", contract_state_m.global_current_locked_usdc);
+            return err!(ErrorCode::PlatformUnhealthy);
     }
 
-    //update user states
-    user_state.lcontract_bought_as_user = 0;
+
+    }
+
+
+
+
     Ok(())
 }
 

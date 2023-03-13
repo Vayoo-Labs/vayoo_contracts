@@ -84,6 +84,7 @@ pub fn handle(
     user_state.contract_position_net = user_state.contract_position_net.checked_sub(amount_swapped as i64).unwrap();
     user_state.lcontract_bought_as_user = user_state.lcontract_bought_as_user.checked_sub(amount_swapped).unwrap();
 
+
     Ok(())
 }
 

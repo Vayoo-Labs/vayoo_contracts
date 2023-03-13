@@ -40,6 +40,8 @@ pub enum ErrorCode {
     CloseShortBeforeLong,
     #[msg("Need to close short before opening long")]
     CloseLongBeforeShort,
+    #[msg("Action leaves the platform unhealthy")]
+    PlatformUnhealthy,
 
     
 }
