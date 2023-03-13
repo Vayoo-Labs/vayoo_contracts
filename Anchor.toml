@@ -38,6 +38,7 @@ wallet = "./tests/testKeys/testUser.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+deploy-idl="anchor build; ./migrations/deploy-idl.sh"
 
 [test]
 startup_wait = 100_000

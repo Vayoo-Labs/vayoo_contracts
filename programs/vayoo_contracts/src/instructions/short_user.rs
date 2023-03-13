@@ -134,6 +134,7 @@ pub fn handle(
         .unwrap();
     user_state.scontract_sold_as_user += amount;
     user_state.contract_position_net = user_state.contract_position_net.checked_sub(amount as i64).unwrap() ;
+    user_state.usdc_free=user_state.usdc_free.checked_sub(amount_to_send_tolocked).unwrap();
 
     let contract_state = &mut ctx.accounts.contract_state;
     contract_state.global_current_locked_usdc+= amount
@@ -148,10 +149,19 @@ pub fn handle(
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
     let needed_collateral = vault_final_scontract_value
-        .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
+        .checked_mul(amplitude)
         .unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
+    }
+
+    //Making sure the whole platform is well collateralized
+    let global_final_issued_contract = contract_state.global_current_issued_lcontract;
+    let global_needed_collateral = global_final_issued_contract
+        .checked_mul(amplitude)
+        .unwrap();
+    if needed_collateral > contract_state.global_current_locked_usdc {
+        return err!(ErrorCode::PlatformUnhealthy);
     }
 
     Ok(())

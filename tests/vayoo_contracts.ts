@@ -2,7 +2,7 @@ import { DecimalUtil, Percentage } from "@orca-so/common-sdk";
 import { AccountFetcher, buildWhirlpoolClient, PDAUtil, PriceMath, swapQuoteByInputToken, swapQuoteByOutputToken, SwapUtils, TickArrayUtil, WhirlpoolContext } from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program, BN, web3 } from "@project-serum/anchor";
-import { getAccount, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token-v2";
+import { getAccount, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID,getMint } from "@solana/spl-token-v2";
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js";
 import { assert, expect } from "chai";
 import { VayooContracts } from "../target/types/vayoo_contracts";
@@ -183,6 +183,13 @@ describe("vayoo_contracts", () => {
     if (DEBUG_MODE) {
       const mmLcontractAta = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
       console.log("MM LContract Balance :", mmLcontractAta.amount.toString());
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
   });
 
@@ -199,6 +206,13 @@ describe("vayoo_contracts", () => {
     if (DEBUG_MODE) {
       const mmLcontractAta = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, testUser.publicKey, true);
       console.log("MM LContract Balance :", mmLcontractAta.amount.toString());
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
   });
 
@@ -412,7 +426,6 @@ describe("vayoo_contracts", () => {
         tickArray2: tickArrays[2].publicKey,
         oracle: whirlpool_oracle_pubkey,
         vaultLcontractAta: vaultLcontractAtaBefore.address,
-        vaultScontractAta: vaultScontractAtaBefore.address,
       })
       .rpc().catch((e) => { console.log(e) });
     const vaultLcontractAtaAfter = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
@@ -429,6 +442,13 @@ describe("vayoo_contracts", () => {
       let amount_sold_in_pool=(Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)+(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
       let price_deduction=amount_sold_in_pool/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
       console.log("Price paid to short in pool",price_deduction)
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
   });
 
@@ -489,6 +509,13 @@ describe("vayoo_contracts", () => {
       let amount_sold_in_pool=(Number(vaultLockedCollateralAtaAfter.amount - vaultLockedCollateralAtaBefore.amount) / 1e6)+(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)
       let price_deduction=amount_sold_in_pool/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount)/ 1e6)
       console.log("Price paid to close short in pool",price_deduction)
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
   });
 
@@ -689,7 +716,15 @@ describe("vayoo_contracts", () => {
       
       let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(vaultScontractAtaAfter.amount - vaultScontractAtaBefore.amount) / 1e6)
       console.log('implied_setteling_price settle long user: ', implied_setteling_price);
-    
+
+
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
 
 
@@ -710,6 +745,14 @@ describe("vayoo_contracts", () => {
       let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(vaultLcontractAtaAfter.amount - vaultLcontractAtaBefore.amount) / 1e6)
       console.log('implied_setteling_price settle long us: ', implied_setteling_price);
     
+
+      const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+      console.log("LContract issued")
+      let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+      console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+      console.log("Ratio")
+      console.log(ratio)
     }
   });
 
@@ -731,14 +774,41 @@ describe("vayoo_contracts", () => {
     let implied_setteling_price=(Number(vaultFreeCollateralAtaAfter.amount - vaultFreeCollateralAtaBefore.amount) / 1e6)/(Number(mmLcontractAtaAfter.amount - mmLcontractAtaBefore.amount) / 1e6)
     console.log('implied_setteling_price: ', implied_setteling_price);
     
+
+    const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
+    console.log("LContract issued")
+    let ratio=Number(contractStateAccount.globalCurrentLockedUsdc)/Number(contractStateAccount.globalCurrentIssuedLcontract)
+    console.log(contractStateAccount.globalCurrentIssuedLcontract.toString())
+    console.log(contractStateAccount.globalCurrentLockedUsdc.toString())
+    console.log("Ratio")
+    console.log(ratio)
     }
   });
 
 
-  xit("Checking collateraliation", async () => {
+  it("Checking collateraliation", async () => {
     //get supply of lcontract
     //get price of redemption of lcontract
     //check that it matches te amount of usd in the escrow
+    const mintInfo1 = await getMint(
+      connection,
+      accounts.lcontractMint
+    )
+
+    
+    console.log(mintInfo1);
+    console.log(mintInfo1.supply.toString());
+    const vaultScontractAtaAfter = await getAccount(connection, accounts.escrowVaultCollateral);  
+    let amount_collateral=Number(vaultScontractAtaAfter.amount)/ 1e6
+    let supply_glob=Number(mintInfo1.supply)/ 1e6
+    console.log("amount_collateral");
+    console.log(amount_collateral);
+    console.log("supply_glob");
+    console.log(supply_glob);
+    let implied_price_structure=amount_collateral/supply_glob
+    console.log("Implied price");
+    console.log(implied_price_structure);
+    
   })
 
 });
