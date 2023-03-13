@@ -43,5 +43,8 @@ pub enum ErrorCode {
     #[msg("Action leaves the platform unhealthy")]
     PlatformUnhealthy,
 
+    #[msg("Error in internal accounting")]
+    ErrorAccounting,
+
     
 }

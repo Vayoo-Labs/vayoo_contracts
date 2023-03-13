@@ -245,6 +245,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
             return err!(ErrorCode::PlatformUnhealthy);
     }
 
+
     Ok(())
 }
 

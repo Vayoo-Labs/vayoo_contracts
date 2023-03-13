@@ -21,7 +21,7 @@ pub fn handle(
 
     let user_state = &ctx.accounts.user_state;
     
-    if user_state.scontract_sold_as_user > 0 {
+    if user_state.lcontract_bought_as_user > 0 {
        return err!(ErrorCode::CloseLongBeforeShort);
     }
     let signer_seeds: &[&[&[u8]]] = &[&[

@@ -109,6 +109,12 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
     }
 
 
+    ctx.accounts.vault_lcontract_ata.reload()?;
+    let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
+    if (user_state.lcontract_bought_as_user != lcontract_bal_after ){
+        return err!(ErrorCode::ErrorAccounting);
+    }
+
     }
 
 

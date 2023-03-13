@@ -80,8 +80,11 @@ pub fn handle(
 
     user_state.usdc_free=user_state.usdc_free.checked_sub(usdc_spent).unwrap();
     user_state.contract_position_net += amount_swapped as i64;
-    user_state.lcontract_bought_as_user += amount_swapped;
+    user_state.lcontract_bought_as_user = user_state.lcontract_bought_as_user +amount_swapped;
 
+    if (user_state.lcontract_bought_as_user != lcontract_bal_after ){
+        return err!(ErrorCode::ErrorAccounting);
+    }
     Ok(())
 }
 

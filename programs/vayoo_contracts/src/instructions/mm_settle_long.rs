@@ -70,6 +70,7 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    
     token::burn(cpi_ctx, amount_to_redeem)?;
     let local_pyt_multiplier=contract_state.pyth_price_multiplier;
     let contract_state_m = &mut ctx.accounts.contract_state;
