@@ -10,7 +10,7 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
     let contract_state = &mut ctx.accounts.contract_state;
     let time_now = Clock::get()?.unix_timestamp;
 
-    require!(!contract_state.is_settling, ErrorCode::AlreadySettled);
+    require!(!contract_state.is_settling, ErrorCode::AlreadySettling);
 
     if time_now as u64 > contract_state.ending_time {
         msg!("Settling Mode Triggered");

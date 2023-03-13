@@ -32,8 +32,8 @@ pub enum ErrorCode {
     ClosePositionBiggerThanOpened,
     #[msg("Maturity Time not reached")]
     MaturityNotReached,
-    #[msg("Already Settled")]
-    AlreadySettled,
+    #[msg("Already In Settle Mode")]
+    AlreadySettling,
     #[msg("Leaves Vault Unhealthy short")]
     ShortLeaveUnhealthy,
     #[msg("Need to close short before opening long")]
@@ -42,6 +42,6 @@ pub enum ErrorCode {
     CloseLongBeforeShort,
     #[msg("Action leaves the platform unhealthy")]
     PlatformUnhealthy,
-
-    
+    #[msg("Contract not in settling mode")]
+    NotSettling,
 }

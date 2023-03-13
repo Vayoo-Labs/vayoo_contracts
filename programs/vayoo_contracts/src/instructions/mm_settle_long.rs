@@ -11,6 +11,8 @@ use crate::states::contract_state::ContractState;
 pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     let contract_state = &ctx.accounts.contract_state;
 
+    require!(contract_state.is_settling, ErrorCode::NotSettling);
+
     let contract_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.contract_state.name.as_bytes(),
         ctx.accounts.contract_state.lcontract_mint.as_ref(),
