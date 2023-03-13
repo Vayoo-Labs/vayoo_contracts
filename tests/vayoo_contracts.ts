@@ -75,7 +75,7 @@ describe("vayoo_contracts", () => {
     const contractName = "v0";
     const timeNow = Math.floor(Date.now() / 1000)
     // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
-    const contractEndTime = new BN(timeNow + 5);
+    const contractEndTime = new BN(timeNow + 20);
     const amplitude = new BN(30);
 
     const [scontractMint, scontractMintBump] =
@@ -676,6 +676,7 @@ describe("vayoo_contracts", () => {
   });
 
   it("Trigger Settle Mode - Maturity Reached", async () => {
+    await sleep(10);
     await program.methods.triggerSettleMode().accounts({ ...accounts }).rpc().catch((e) => console.log(e));
     const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
     const timeNow = (Date.now() / 1000)
