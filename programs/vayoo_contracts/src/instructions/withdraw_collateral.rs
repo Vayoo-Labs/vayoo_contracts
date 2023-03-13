@@ -27,9 +27,9 @@ pub fn handle(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
     token::transfer(cpi_ctx, amount)?;
 
     // Update State
-    user_state.usdc_deposited -= amount;
-    contract_state.current_tvl_usdc -= amount;
-    user_state.usdc_free -= amount;
+    user_state.usdc_deposited = user_state.usdc_deposited.checked_sub(amount).unwrap();
+    contract_state.current_tvl_usdc = contract_state.current_tvl_usdc.checked_sub(amount).unwrap();
+    user_state.usdc_free = user_state.usdc_free.checked_sub(amount).unwrap();
     Ok(())
 }
 
