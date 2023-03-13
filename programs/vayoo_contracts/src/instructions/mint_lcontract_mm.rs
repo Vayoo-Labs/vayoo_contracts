@@ -95,7 +95,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     let global_needed_collateral = global_final_issued_contract
         .checked_mul(limit_amplitude_loc)
         .unwrap();
-    if needed_collateral > contract_state.global_current_locked_usdc {
+    if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }
     Ok(())

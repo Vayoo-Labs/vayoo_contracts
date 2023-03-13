@@ -160,7 +160,7 @@ pub fn handle(
     let global_needed_collateral = global_final_issued_contract
         .checked_mul(amplitude)
         .unwrap();
-    if needed_collateral > contract_state.global_current_locked_usdc {
+    if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }
 
