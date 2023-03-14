@@ -85,7 +85,7 @@ pub fn handle(
     user_state.lcontract_bought_as_user = user_state.lcontract_bought_as_user.checked_sub(amount_swapped).unwrap();
 
     
-    if (user_state.lcontract_bought_as_user != lcontract_bal_after ){
+    if user_state.lcontract_bought_as_user != lcontract_bal_after {
         return err!(ErrorCode::ErrorAccounting);
     }
 

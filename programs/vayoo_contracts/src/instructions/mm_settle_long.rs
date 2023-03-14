@@ -2,9 +2,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::ErrorCode;
-use crate::states::UserState;
 use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
-use std::cmp::max;
 use std::cmp::min;
 //local imports
 use crate::states::contract_state::ContractState;
