@@ -10,13 +10,21 @@ use crate::states::user_state::UserState;
 pub fn handle(ctx: Context<InitUser>, bump: u8) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
 
+    user_state.contract_account = ctx.accounts.contract_state.key();
     user_state.bump = bump;
-    user_state.usdc_deposited = 0;
-    user_state.usdc_withdrawn = 0;
+    user_state.authority = ctx.accounts.user_authority.key();
     user_state.ishalted = false;
     user_state.issettled = false;
-    user_state.authority = ctx.accounts.user_authority.key();
-    user_state.contract_account = ctx.accounts.contract_state.key();
+    user_state.contract_position_net = 0;
+    user_state.usdc_collateral_locked_total = 0;
+    user_state.usdc_collateral_locked_as_mm = 0;
+    user_state.lcontract_minted_as_mm = 0;
+    user_state.lcontract_bought_as_user = 0;
+    user_state.scontract_sold_as_user = 0;
+    user_state.usdc_collateral_locked_as_user = 0;
+    user_state.usdc_collateral_spent_as_user = 0;
+    user_state.usdc_deposited = 0;
+    user_state.usdc_withdrawn = 0;
     user_state.usdc_free=0;
     Ok(())
 }

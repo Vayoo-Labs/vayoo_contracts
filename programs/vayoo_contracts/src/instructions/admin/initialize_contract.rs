@@ -24,11 +24,14 @@ pub fn handle(
     contract_state.name = contract_name;
     contract_state.authority = ctx.accounts.contract_authority.key();
     contract_state.bump = bump;
+    contract_state.escrow_vault_collateral = ctx.accounts.escrow_vault_collateral.key();
     contract_state.is_halted = false;
+    contract_state.is_halted_deposit = false;
+    contract_state.is_halted_trading = false;
+    contract_state.is_settling = false;
+    contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
-    contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
-    contract_state.escrow_vault_collateral = ctx.accounts.escrow_vault_collateral.key();
 
     //Get price from pyth and write it in the account
     contract_state.pyth_feed_id = ctx.accounts.pyth_feed.key();
@@ -38,19 +41,23 @@ pub fn handle(
         .get_price_no_older_than(current_timestamp, 60)
         .ok_or(ErrorCode::PythOffline)?;
     msg!(&format!("Initializing at  {}", pyth_feed_price.price));
-    contract_state.starting_price = pyth_feed_price.price as u64;
 
-    //Initialize other stuff
-    contract_state.limiting_amplitude = limiting_amplitude;
-    contract_state.starting_time = current_timestamp as u64;
-    contract_state.ending_time = ending_time;
-    contract_state.global_current_locked_usdc=0;
-    contract_state.global_current_issued_lcontract=0;
     let mut multiplicator=(-pyth_feed_price.expo) as u32;
     let base=10 as u32;
     multiplicator=base.pow(multiplicator);
     contract_state.pyth_price_multiplier = multiplicator as u64;
 
+    contract_state.limiting_amplitude = limiting_amplitude;
+    contract_state.starting_price = pyth_feed_price.price as u64;
+    contract_state.starting_time = current_timestamp as u64;
+    contract_state.ending_price = 0;
+    contract_state.ending_time = ending_time;
+    contract_state.cap_product = 0;
+    contract_state.current_tvl_usdc = 0;
+    contract_state.current_tvl_underlying = 0;
+    contract_state.global_current_locked_usdc=0;
+    contract_state.global_current_issued_lcontract=0;
+       
     Ok(())
 }
 
