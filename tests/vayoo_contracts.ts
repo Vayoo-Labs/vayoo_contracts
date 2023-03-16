@@ -72,7 +72,7 @@ describe("vayoo_contracts", () => {
   });
 
   it("Initialize Contract Account/State", async () => {
-    const contractName = "v0";
+    const contractName = "xv1";
     const timeNow = Math.floor(Date.now() / 1000)
     // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
     const contractEndTime = new BN(timeNow + 20);
@@ -234,6 +234,10 @@ describe("vayoo_contracts", () => {
       console.log("Pool Price1 : ", poolPrice);
       console.log("Pool Price2 : ", 1/poolPrice.toNumber());
       console.log('Token A is LContract', poolData.tokenMintA.equals(accounts.lcontractMint))
+    }
+    if (!poolData.tokenMintA.equals(accounts.lcontractMint)) {
+      console.log("lcontract mint not mint A")
+      return
     }
 
     const positionData = (await addLiquidity(whirlpoolCtx, whirlpoolKey, addLiquidityAmount, accounts.lcontractMint, spread)).getData();

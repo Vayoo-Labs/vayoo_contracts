@@ -88,7 +88,7 @@ pub fn handle(
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
     let amount_specified_is_input_enforced=true;
-    let a_to_b_enforced=false;
+    let a_to_b_enforced=true;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
     whirlpools::cpi::swap(
