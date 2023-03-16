@@ -72,34 +72,63 @@ describe("vayoo_contracts", () => {
   });
 
   it("Initialize Contract Account/State", async () => {
-    const contractName = "xv1";
-    const timeNow = Math.floor(Date.now() / 1000)
-    // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
-    const contractEndTime = new BN(timeNow + 20);
     const amplitude = new BN(30);
+    let need_to_find_relevant_mint=true
+    let contractName = "xv1";
+    let [scontractMint, scontractMintBump] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(contractName), Buffer.from("scontract")],
+      program.programId
+    );
+    let [lcontractMint, lcontractMintBump] =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(contractName), Buffer.from("lcontract")],
+      program.programId
+    );
+    let [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
+    let timeNow = Math.floor(Date.now() / 1000)
+    // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
+    let contractEndTime = new BN(timeNow + 20);
+    let name_seed_counter=1
+    while (need_to_find_relevant_mint){
+      name_seed_counter=name_seed_counter+1
+      contractName = "xv1"+name_seed_counter
+      timeNow = Math.floor(Date.now() / 1000)
+      // const contractEndTime = new BN(timeNow + ONE_WEEK_IN_SECONDS);
+      contractEndTime = new BN(timeNow + 20);
+     
+      [scontractMint, scontractMintBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from(contractName), Buffer.from("scontract")],
+          program.programId
+        );
+      [lcontractMint, lcontractMintBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from(contractName), Buffer.from("lcontract")],
+          program.programId
+        );
+      [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
+      let [escrowVaultCollateral, escrowVaultCollateralBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
+          program.programId
+        );
+      accounts.escrowVaultCollateral = escrowVaultCollateral;
+      accounts.contractState = contractStateKey;
+      accounts.contractAuthority = superUser.publicKey;
+      accounts.lcontractMint = lcontractMint;
+      accounts.scontractMint = scontractMint;
 
-    const [scontractMint, scontractMintBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(contractName), Buffer.from("scontract")],
-        program.programId
-      );
-    const [lcontractMint, lcontractMintBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(contractName), Buffer.from("lcontract")],
-        program.programId
-      );
-    const [contractStateKey, contractStateKeyBump] = web3.PublicKey.findProgramAddressSync([Buffer.from(contractName), lcontractMint.toBuffer(), superUser.publicKey.toBuffer()], program.programId)
-    const [escrowVaultCollateral, escrowVaultCollateralBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from('escrow'), accounts.collateralMint.toBuffer(), contractStateKey.toBuffer()],
-        program.programId
-      );
-    accounts.escrowVaultCollateral = escrowVaultCollateral;
-    accounts.contractState = contractStateKey;
-    accounts.contractAuthority = superUser.publicKey;
-    accounts.lcontractMint = lcontractMint;
-    accounts.scontractMint = scontractMint;
+      if (lcontractMint.toString()<accounts.collateralMint.toString()){
+        console.log("Found relevant mint !!")
+        need_to_find_relevant_mint=false
+        break
+      }
+      console.log("Token mint doesnt work")
+      console.log(lcontractMint.toString())
+      console.log(accounts.collateralMint.toString())
 
+  }
     await program.methods.initializeContract(contractName, contractStateKeyBump, contractEndTime, amplitude).accounts({
       ...accounts
     }).signers([superUser]).rpc().catch((e) => { console.log(e) });;
