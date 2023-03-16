@@ -10,12 +10,8 @@ pub fn handle(
     amount: u64,
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
-    amount_specified_is_input: bool,
-    a_to_b: bool,
 ) -> Result<()> {
 
-
-    
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
 
@@ -57,7 +53,7 @@ pub fn handle(
     };
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-    let amount_specified_is_input_real=false;
+    let amount_specified_is_input_enforced=false;
     let a_to_b_enforced=true;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
@@ -66,7 +62,7 @@ pub fn handle(
         amount,
         other_amount_threshold,
         sqrt_price_limit,
-        amount_specified_is_input,
+        amount_specified_is_input_enforced,
         a_to_b_enforced,
     )?;
 

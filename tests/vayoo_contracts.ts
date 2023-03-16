@@ -412,8 +412,6 @@ describe("vayoo_contracts", () => {
         amount,
         other_amount_threshold,
         sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
       )
       .accounts({
         ...accounts,
@@ -479,8 +477,6 @@ describe("vayoo_contracts", () => {
         outputTokenQuote.amount,
         outputTokenQuote.otherAmountThreshold,
         outputTokenQuote.sqrtPriceLimit,
-        outputTokenQuote.amountSpecifiedIsInput,
-        outputTokenQuote.aToB,
       )
       .accounts({
         ...accounts,
@@ -547,8 +543,6 @@ describe("vayoo_contracts", () => {
         outputTokenQuote.amount,
         outputTokenQuote.otherAmountThreshold,
         outputTokenQuote.sqrtPriceLimit,
-        outputTokenQuote.amountSpecifiedIsInput,
-        outputTokenQuote.aToB,
       )
       .accounts({
         ...accounts,
@@ -602,8 +596,6 @@ describe("vayoo_contracts", () => {
         amount,
         other_amount_threshold,
         sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
       )
       .accounts({
         ...accounts,
@@ -650,8 +642,6 @@ describe("vayoo_contracts", () => {
         amount,
         other_amount_threshold,
         sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
       )
       .accounts({
         ...accounts,
