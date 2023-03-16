@@ -57,7 +57,8 @@ pub fn handle(
     };
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-
+    let amount_specified_is_input_enforced=true;
+    let a_to_b_enforced=false;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
     whirlpools::cpi::swap(
@@ -65,8 +66,8 @@ pub fn handle(
         amount,
         other_amount_threshold,
         sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
+        amount_specified_is_input_enforced,
+        a_to_b_enforced,
     )?;
 
     // Updating State

@@ -396,7 +396,7 @@ describe("vayoo_contracts", () => {
     const userStateAccount = await program.account.userState.fetch(accounts.userState);
     const amountToClose = userStateAccount.lcontractBoughtAsUser
 
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6); // open short
+    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(2), 6); // open short
     const amount = new anchor.BN(a_input);
     const other_amount_threshold = new anchor.BN(0);
     const amount_specified_is_input = true;
@@ -466,13 +466,14 @@ describe("vayoo_contracts", () => {
     const outputTokenQuote = await swapQuoteByOutputToken(
       whirlpool,
       accounts.lcontractMint,
-      DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6),
+      DecimalUtil.toU64(DecimalUtil.fromNumber(2), 6),
       Percentage.fromFraction(1, 10), // 0.1%
       ORCA_WHIRLPOOL_PROGRAM_ID,
       orcaFetcher,
       true
     );
-        
+    console.log(outputTokenQuote.aToB)
+    console.log("a_to_b")
     await program.methods
       .closeShortUser(
         outputTokenQuote.amount,
@@ -527,26 +528,27 @@ describe("vayoo_contracts", () => {
     const poolData = (await whirlpoolClient.getPool(poolKey)).getData();
     const vaultLcontractAtaBefore = await getOrCreateAssociatedTokenAccount(connection, testUser, accounts.lcontractMint, accounts.userState, true);
     const whirlpool_oracle_pubkey = PDAUtil.getOracle(whirlpoolCtx.program.programId, poolKey).publicKey;
-
+    const whirlpool = await whirlpoolClient.getPool(poolKey, true)
     // Arguments for swap
-    const a_input = DecimalUtil.toU64(DecimalUtil.fromNumber(15), 6); // Long with 500 collateral
-    const amount = new anchor.BN(a_input);
-    const other_amount_threshold = new anchor.BN(0);
-    const amount_specified_is_input = true;
+    const outputTokenQuote = await swapQuoteByOutputToken(
+      whirlpool,
+      accounts.lcontractMint,
+      DecimalUtil.toU64(DecimalUtil.fromNumber(1), 6),
+      Percentage.fromFraction(1, 10), // 0.1%
+      ORCA_WHIRLPOOL_PROGRAM_ID,
+      orcaFetcher,
+      true
+    );
 
-    // Conditional Swap Direction, Super Important
-    const a_to_b = poolData.tokenMintA.equals(accounts.collateralMint);
-    const sqrt_price_limit = SwapUtils.getDefaultSqrtPriceLimit(a_to_b);
-    const tickArrays = TickArrayUtil.getTickArrayPDAs(poolData.tickCurrentIndex, poolData.tickSpacing, 3, whirlpoolCtx.program.programId, poolKey, a_to_b);
-    console.log(a_to_b)
+    console.log(outputTokenQuote.aToB)
     console.log("a_to_b")
     await program.methods
       .longUser(
-        amount,
-        other_amount_threshold,
-        sqrt_price_limit,
-        amount_specified_is_input,
-        a_to_b,
+        outputTokenQuote.amount,
+        outputTokenQuote.otherAmountThreshold,
+        outputTokenQuote.sqrtPriceLimit,
+        outputTokenQuote.amountSpecifiedIsInput,
+        outputTokenQuote.aToB,
       )
       .accounts({
         ...accounts,
@@ -554,9 +556,9 @@ describe("vayoo_contracts", () => {
         whirlpool: poolKey,
         tokenVaultA: poolData.tokenVaultA,
         tokenVaultB: poolData.tokenVaultB,
-        tickArray0: tickArrays[0].publicKey,
-        tickArray1: tickArrays[1].publicKey,
-        tickArray2: tickArrays[2].publicKey,
+        tickArray0: outputTokenQuote.tickArray0,
+        tickArray1: outputTokenQuote.tickArray1,
+        tickArray2: outputTokenQuote.tickArray2,
         oracle: whirlpool_oracle_pubkey,
         vaultLcontractAta: vaultLcontractAtaBefore.address,
       })
