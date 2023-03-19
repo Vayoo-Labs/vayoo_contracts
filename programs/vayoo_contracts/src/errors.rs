@@ -3,47 +3,47 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum ErrorCode {
     #[msg("You are not authorized to perform this action.")]
-    Unauthorized,
+    Unauthorized, // 0x1770
     #[msg("InvalidInstruction")]
-    Invalid,
+    Invalid, // 0x1771
     #[msg("The config has already been initialized.")]
-    ReInitialize,
+    ReInitialize, // 0x1772
     #[msg("The config has not been initialized.")]
-    UnInitialize,
+    UnInitialize, // 0x1773
     #[msg("Argument is invalid.")]
-    InvalidArgument,
+    InvalidArgument, // 0x1774
     #[msg("An overflow occurs.")]
-    Overflow,
+    Overflow, // 0x1775
     #[msg("Pyth has an internal error.")]
-    PythError,
+    PythError, // 0x1776
     #[msg("Pyth price oracle is offline.")]
-    PythOffline,
+    PythOffline, // 0x1777
     #[msg("Program should not try to serialize a price account.")]
-    TryToSerializePriceAccount,
+    TryToSerializePriceAccount, // 0x1778
     #[msg("Contract has Ended Already")]
-    ContractEnded,
+    ContractEnded, // 0x1779
     #[msg("Contract has been halted for trading and depositing")]
-    ContractHalted,
+    ContractHalted, // 0x177a
     #[msg("Contract has been halted for depositing")]
-    ContractDepositHalted,
+    ContractDepositHalted, // 0x177b
     #[msg("Contract has been halted for trading")]
-    ContractTradingHalted,
+    ContractTradingHalted, // 0x177c
     #[msg("Trying to close a bigger position than what you have opened")]
-    ClosePositionBiggerThanOpened,
+    ClosePositionBiggerThanOpened, // 0x177d
     #[msg("Maturity Time not reached")]
-    MaturityNotReached,
+    MaturityNotReached, // 0x177e
     #[msg("Already In Settle Mode")]
-    AlreadySettling,
+    AlreadySettling, // 0x177f
     #[msg("Leaves Vault Unhealthy short")]
-    ShortLeaveUnhealthy,
+    ShortLeaveUnhealthy, // 0x1780
     #[msg("Need to close short before opening long")]
-    CloseShortBeforeLong,
+    CloseShortBeforeLong, // 0x1781
     #[msg("Need to close short before opening long")]
-    CloseLongBeforeShort,
+    CloseLongBeforeShort, // 0x1782
     #[msg("Action leaves the platform unhealthy")]
-    PlatformUnhealthy,
+    PlatformUnhealthy, // 0x1783
     #[msg("Contract not in settling mode")]
-    NotSettling,
+    NotSettling, // 0x1784
     #[msg("Error in internal accounting")]
-    ErrorAccounting
+    ErrorAccounting // 0x1785
 }
