@@ -95,6 +95,8 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         //update user states
         contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_bought_as_user).unwrap();
         contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_longer).unwrap();
+        user_state.usdc_free=user_state.usdc_free+gains_longer;
+        user_state.lcontract_bought_as_user = 0;
         user_state.lcontract_bought_as_user = 0;
         user_state.contract_position_net = 0;
         user_state.issettled = true;
