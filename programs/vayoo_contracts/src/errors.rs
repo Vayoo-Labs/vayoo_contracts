@@ -46,4 +46,6 @@ pub enum ErrorCode {
     NotSettling, // 0x1784
     #[msg("Error in internal accounting")]
     ErrorAccounting // 0x1785
+    #[msg("LeakInFreeAccountUser")]
+    LeakInFAccount // 0x1786
 }

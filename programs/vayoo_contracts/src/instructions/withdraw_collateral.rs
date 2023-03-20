@@ -9,6 +9,9 @@ use crate::states::user_state::UserState;
 
 pub fn handle(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
+    if (amount>user_state.usdc_free){
+        return err!(ErrorCode::LeakInFAccount);
+    }
     let contract_state = &mut ctx.accounts.contract_state;
 
     let signer_seeds: &[&[&[u8]]] = &[&[
@@ -29,6 +32,7 @@ pub fn handle(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
     // Update State
     user_state.usdc_deposited = user_state.usdc_deposited.checked_sub(amount).unwrap_or(0);
     contract_state.current_tvl_usdc = contract_state.current_tvl_usdc.checked_sub(amount).unwrap_or(0);
+
     user_state.usdc_free = user_state.usdc_free.checked_sub(amount).unwrap_or(0);
     Ok(())
 }
