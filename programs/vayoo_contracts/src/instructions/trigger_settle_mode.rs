@@ -35,10 +35,12 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct TriggerSettleMode<'info> {
+    pub contract_authority: Signer<'info>,
     #[account[
         mut,
-        seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.as_ref(), contract_state.authority.as_ref()],
-        bump
+        seeds = [contract_state.name.as_ref(), contract_state.lcontract_mint.as_ref(), contract_authority.key().as_ref()],
+        bump,
+        constraint = pyth_feed.key() == contract_state.pyth_feed_id
     ]]
     pub contract_state: Box<Account<'info, ContractState>>,
     pub pyth_feed: Account<'info, PriceFeed>,

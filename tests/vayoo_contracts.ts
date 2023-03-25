@@ -149,7 +149,7 @@ describe("vayoo_contracts", () => {
 
   it("Cannot Trigger Settle Mode - Maturity Not Reached", async () => {
     let msg = '';
-    await program.methods.triggerSettleMode().accounts({ ...accounts }).rpc().catch((e) => (msg = e.error.errorCode.code));
+    await program.methods.triggerSettleMode().accounts({ ...accounts }).signers([superUser]).rpc().catch((e) => (msg = e.error.errorCode.code));
     assert.ok(msg == 'MaturityNotReached');
   });
 
@@ -696,7 +696,7 @@ describe("vayoo_contracts", () => {
 
   it("Trigger Settle Mode - Maturity Reached", async () => {
     await sleep(10);
-    await program.methods.triggerSettleMode().accounts({ ...accounts }).rpc().catch((e) => console.log(e));
+    await program.methods.triggerSettleMode().accounts({ ...accounts }).signers([superUser]).rpc().catch((e) => console.log(e));
     const contractStateAccount = await program.account.contractState.fetch(accounts.contractState);
     const timeNow = (Date.now() / 1000)
     const endTime = (contractStateAccount.endingTime.toNumber())
