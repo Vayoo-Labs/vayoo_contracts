@@ -70,10 +70,9 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     // Update User State
     user_state.usdc_collateral_locked_as_mm -= amount_to_send;
     user_state.lcontract_minted_as_mm -= amount;
-    user_state.contract_position_net = user_state.contract_position_net+(amount as i64) ;
-    user_state.usdc_free = user_state.usdc_free+amount_to_send;
+    user_state.contract_position_net += amount as i64;
+    user_state.usdc_free += amount_to_send;
 
-    
     // Update Contract State
 
     //Making sure the user vault is well collateralized
@@ -87,10 +86,10 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
-    let limit_amplitude_loc=ctx.accounts.contract_state.limiting_amplitude;
+    let limit_amplitude_loc = ctx.accounts.contract_state.limiting_amplitude;
     let contract_state = &mut ctx.accounts.contract_state;
-    contract_state.global_current_locked_usdc-= amount_to_send;
-    contract_state.global_current_issued_lcontract-= amount;
+    contract_state.global_current_locked_usdc -= amount_to_send;
+    contract_state.global_current_issued_lcontract -= amount;
     //Making sure the whole platform is well collateralized
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
     let global_needed_collateral = global_final_issued_contract

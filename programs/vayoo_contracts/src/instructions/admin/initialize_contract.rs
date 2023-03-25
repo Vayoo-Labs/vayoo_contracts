@@ -42,9 +42,9 @@ pub fn handle(
         .ok_or(ErrorCode::PythOffline)?;
     msg!(&format!("Initializing at  {}", pyth_feed_price.price));
 
-    let mut multiplicator=(-pyth_feed_price.expo) as u32;
-    let base=10 as u32;
-    multiplicator=base.pow(multiplicator);
+    let mut multiplicator = (-pyth_feed_price.expo) as u32;
+    let base = 10 as u32;
+    multiplicator = base.pow(multiplicator);
     contract_state.pyth_price_multiplier = multiplicator as u64;
 
     contract_state.limiting_amplitude = limiting_amplitude;
@@ -55,9 +55,9 @@ pub fn handle(
     contract_state.cap_product = 0;
     contract_state.current_tvl_usdc = 0;
     contract_state.current_tvl_underlying = 0;
-    contract_state.global_current_locked_usdc=0;
-    contract_state.global_current_issued_lcontract=0;
-       
+    contract_state.global_current_locked_usdc = 0;
+    contract_state.global_current_issued_lcontract = 0;
+
     Ok(())
 }
 

@@ -1,4 +1,4 @@
-use std::cmp::{min};
+use std::cmp::min;
 
 //libraries
 use anchor_lang::prelude::*;
@@ -10,10 +10,9 @@ use crate::errors::ErrorCode;
 use crate::states::contract_state::ContractState;
 
 pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
-    
     let user_state = &mut ctx.accounts.user_state;
     let contract_state = &ctx.accounts.contract_state;
-    
+
     require!(contract_state.is_settling, ErrorCode::NotSettling);
 
     let user_signer_seeds: &[&[&[u8]]] = &[&[
@@ -32,8 +31,10 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
     //1.Settle the long side
     if user_state.lcontract_bought_as_user > 0 {
         //for this condition, we should also check the amounts of tokens in the token accounts to double check
-        let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier)
-        .unwrap();
+        let adapted_contract_limiting_amplitude = contract_state
+            .limiting_amplitude
+            .checked_mul(contract_state.pyth_price_multiplier)
+            .unwrap();
 
         let midrange = contract_state
             .limiting_amplitude
@@ -42,16 +43,16 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
             .checked_div(2)
             .unwrap();
 
-        let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
-        let upper_bound=contract_state.starting_price+midrange;
-        let mut final_price=contract_state.ending_price;
-        if final_price>upper_bound{
-            final_price=upper_bound;
+        let lower_bound = contract_state.starting_price.checked_sub(midrange).unwrap();
+        let upper_bound = contract_state.starting_price + midrange;
+        let mut final_price = contract_state.ending_price;
+        if final_price > upper_bound {
+            final_price = upper_bound;
         }
-        if final_price<lower_bound{
-            final_price=lower_bound;
+        if final_price < lower_bound {
+            final_price = lower_bound;
         }
-        
+
         let mut pnl_lcontract = final_price.checked_sub(lower_bound).unwrap();
         pnl_lcontract = min(pnl_lcontract, adapted_contract_limiting_amplitude);
         msg!(&format!("pnl_lcontract  {}", pnl_lcontract));
@@ -89,13 +90,18 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         msg!("user settle burn: {}", user_state.lcontract_bought_as_user);
         token::burn(cpi_ctx, user_state.lcontract_bought_as_user)?;
 
-
-        let local_pyt_multiplier=contract_state.pyth_price_multiplier;
+        let local_pyt_multiplier = contract_state.pyth_price_multiplier;
         let contract_state_m = &mut ctx.accounts.contract_state;
         //update user states
-        contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_bought_as_user).unwrap();
-        contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_longer).unwrap();
-        user_state.usdc_free=user_state.usdc_free+gains_longer;
+        contract_state_m.global_current_issued_lcontract = contract_state_m
+            .global_current_issued_lcontract
+            .checked_sub(user_state.lcontract_bought_as_user)
+            .unwrap();
+        contract_state_m.global_current_locked_usdc = contract_state_m
+            .global_current_locked_usdc
+            .checked_sub(gains_longer)
+            .unwrap();
+        user_state.usdc_free += gains_longer;
         user_state.lcontract_bought_as_user = 0;
         user_state.contract_position_net = 0;
         user_state.issettled = true;
@@ -103,24 +109,25 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
 
         let global_needed_collateral = global_final_issued_contract
-        .checked_mul(pnl_lcontract)
-        .unwrap()
-        .checked_div(local_pyt_multiplier)
-        .unwrap();
+            .checked_mul(pnl_lcontract)
+            .unwrap()
+            .checked_div(local_pyt_multiplier)
+            .unwrap();
 
         if global_needed_collateral > contract_state_m.global_current_locked_usdc {
             msg!("global_needed_collateral: {}", global_needed_collateral);
-            msg!("global_current_locked_usdc: {}", contract_state_m.global_current_locked_usdc);
+            msg!(
+                "global_current_locked_usdc: {}",
+                contract_state_m.global_current_locked_usdc
+            );
             return err!(ErrorCode::PlatformUnhealthy);
-    }
+        }
 
-
-    ctx.accounts.vault_lcontract_ata.reload()?;
-    let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
-    if user_state.lcontract_bought_as_user != lcontract_bal_after {
-        return err!(ErrorCode::ErrorAccounting);
-    }
-
+        ctx.accounts.vault_lcontract_ata.reload()?;
+        let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
+        if user_state.lcontract_bought_as_user != lcontract_bal_after {
+            return err!(ErrorCode::ErrorAccounting);
+        }
     }
     Ok(())
 }

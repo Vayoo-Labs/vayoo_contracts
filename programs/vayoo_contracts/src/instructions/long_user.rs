@@ -11,7 +11,6 @@ pub fn handle(
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
 ) -> Result<()> {
-
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
 
@@ -20,7 +19,7 @@ pub fn handle(
 
     let user_state = &mut ctx.accounts.user_state;
     if user_state.scontract_sold_as_user > 0 {
-       return err!(ErrorCode::CloseShortBeforeLong);
+        return err!(ErrorCode::CloseShortBeforeLong);
     }
     let signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
@@ -53,8 +52,8 @@ pub fn handle(
     };
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-    let amount_specified_is_input_enforced=false;
-    let a_to_b_enforced=false;
+    let amount_specified_is_input_enforced = false;
+    let a_to_b_enforced = false;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
     whirlpools::cpi::swap(
@@ -69,15 +68,25 @@ pub fn handle(
     // Updating State
     ctx.accounts.vault_lcontract_ata.reload()?;
     let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
-    let amount_swapped = lcontract_bal_after.checked_sub(lcontract_bal_before).unwrap();
+    let amount_swapped = lcontract_bal_after
+        .checked_sub(lcontract_bal_before)
+        .unwrap();
 
     ctx.accounts.vault_free_collateral_ata.reload()?;
     let free_usdc_bal_after = ctx.accounts.vault_free_collateral_ata.amount;
-    let usdc_spent =  free_usdc_bal_before.checked_sub(free_usdc_bal_after).unwrap();
+    let usdc_spent = free_usdc_bal_before
+        .checked_sub(free_usdc_bal_after)
+        .unwrap();
 
-    user_state.usdc_free=user_state.usdc_free.checked_sub(usdc_spent).unwrap();
-    user_state.contract_position_net = user_state.contract_position_net.checked_add(amount_swapped as i64).unwrap();
-    user_state.lcontract_bought_as_user = user_state.lcontract_bought_as_user.checked_add(amount_swapped).unwrap();
+    user_state.usdc_free = user_state.usdc_free.checked_sub(usdc_spent).unwrap();
+    user_state.contract_position_net = user_state
+        .contract_position_net
+        .checked_add(amount_swapped as i64)
+        .unwrap();
+    user_state.lcontract_bought_as_user = user_state
+        .lcontract_bought_as_user
+        .checked_add(amount_swapped)
+        .unwrap();
 
     if user_state.lcontract_bought_as_user != lcontract_bal_after {
         return err!(ErrorCode::ErrorAccounting);

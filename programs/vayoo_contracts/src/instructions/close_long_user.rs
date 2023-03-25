@@ -13,7 +13,7 @@ pub fn handle(
 ) -> Result<()> {
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
-    
+
     let token_account_a;
     let token_account_b;
 
@@ -55,8 +55,8 @@ pub fn handle(
     };
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-    let amount_specified_is_input_enforced=true;
-    let a_to_b_enforced=true;
+    let amount_specified_is_input_enforced = true;
+    let a_to_b_enforced = true;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
     whirlpools::cpi::swap(
@@ -73,17 +73,23 @@ pub fn handle(
     let lcontract_bal_after = ctx.accounts.vault_lcontract_ata.amount;
     let amount_swapped = lcontract_bal_before - lcontract_bal_after;
 
-
     ctx.accounts.vault_free_collateral_ata.reload()?;
     let free_usdc_bal_after = ctx.accounts.vault_free_collateral_ata.amount;
 
-    let usdc_gathered = free_usdc_bal_after.checked_sub(free_usdc_bal_before).unwrap();
+    let usdc_gathered = free_usdc_bal_after
+        .checked_sub(free_usdc_bal_before)
+        .unwrap();
 
-    user_state.usdc_free=user_state.usdc_free+usdc_gathered;
-    user_state.contract_position_net = user_state.contract_position_net.checked_sub(amount_swapped as i64).unwrap();
-    user_state.lcontract_bought_as_user = user_state.lcontract_bought_as_user.checked_sub(amount_swapped).unwrap();
+    user_state.usdc_free += usdc_gathered;
+    user_state.contract_position_net = user_state
+        .contract_position_net
+        .checked_sub(amount_swapped as i64)
+        .unwrap();
+    user_state.lcontract_bought_as_user = user_state
+        .lcontract_bought_as_user
+        .checked_sub(amount_swapped)
+        .unwrap();
 
-    
     if user_state.lcontract_bought_as_user != lcontract_bal_after {
         return err!(ErrorCode::ErrorAccounting);
     }

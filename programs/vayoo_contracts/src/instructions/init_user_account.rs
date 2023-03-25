@@ -25,7 +25,7 @@ pub fn handle(ctx: Context<InitUser>, bump: u8) -> Result<()> {
     user_state.usdc_collateral_spent_as_user = 0;
     user_state.usdc_deposited = 0;
     user_state.usdc_withdrawn = 0;
-    user_state.usdc_free=0;
+    user_state.usdc_free = 0;
     Ok(())
 }
 

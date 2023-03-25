@@ -18,11 +18,13 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         user_state.authority.as_ref(),
         &[user_state.bump],
     ]];
-    let amplitude=ctx.accounts.contract_state.limiting_amplitude;
-    let local_pyt_multiplier=contract_state.pyth_price_multiplier;
+    let amplitude = ctx.accounts.contract_state.limiting_amplitude;
+    let local_pyt_multiplier = contract_state.pyth_price_multiplier;
 
-    let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier)
-    .unwrap();
+    let adapted_contract_limiting_amplitude = contract_state
+        .limiting_amplitude
+        .checked_mul(contract_state.pyth_price_multiplier)
+        .unwrap();
 
     let midrange = contract_state
         .limiting_amplitude
@@ -31,21 +33,21 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         .checked_div(2)
         .unwrap();
 
-    let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
-    let upper_bound=contract_state.starting_price+midrange;
-    let mut final_price=contract_state.ending_price;
-    if final_price>upper_bound{
-        final_price=upper_bound;
+    let lower_bound = contract_state.starting_price.checked_sub(midrange).unwrap();
+    let upper_bound = contract_state.starting_price + midrange;
+    let mut final_price = contract_state.ending_price;
+    if final_price > upper_bound {
+        final_price = upper_bound;
     }
-    if final_price<lower_bound{
-        final_price=lower_bound;
+    if final_price < lower_bound {
+        final_price = lower_bound;
     }
-    
+
     let mut pnl_lcontract_long = final_price.checked_sub(lower_bound).unwrap();
     pnl_lcontract_long = min(pnl_lcontract_long, adapted_contract_limiting_amplitude);
 
-    let mut gains_shorter_mm=0;
-    let mut gains_shorter_user=0;
+    let mut gains_shorter_mm = 0;
+    let mut gains_shorter_user = 0;
     if user_state.scontract_sold_as_user > 0 {
         // then the guy is net short
 
@@ -55,10 +57,15 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         //0 lcontracts locked on the ata
         //The setteling process for the short is DIFFERENT FROM THE LONG:
 
-
-        let mut limited_pnl_per_contract_short=upper_bound.checked_sub(final_price).unwrap();
-        limited_pnl_per_contract_short = min(limited_pnl_per_contract_short, adapted_contract_limiting_amplitude);
-        msg!(&format!("pnl_scontract  {}", limited_pnl_per_contract_short));
+        let mut limited_pnl_per_contract_short = upper_bound.checked_sub(final_price).unwrap();
+        limited_pnl_per_contract_short = min(
+            limited_pnl_per_contract_short,
+            adapted_contract_limiting_amplitude,
+        );
+        msg!(&format!(
+            "pnl_scontract  {}",
+            limited_pnl_per_contract_short
+        ));
 
         let gains_shorter = user_state
             .scontract_sold_as_user
@@ -115,15 +122,17 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         msg!("test: {}", user_state.scontract_sold_as_user);
         token::burn(cpi_ctx, user_state.scontract_sold_as_user)?;
 
-        gains_shorter_user=gains_shorter;
+        gains_shorter_user = gains_shorter;
     }
 
     if user_state.lcontract_minted_as_mm > 0 {
         //if false {
 
-
-        let mut limited_pnl_per_contract_short=upper_bound.checked_sub(final_price).unwrap();
-        limited_pnl_per_contract_short = min(limited_pnl_per_contract_short, adapted_contract_limiting_amplitude);
+        let mut limited_pnl_per_contract_short = upper_bound.checked_sub(final_price).unwrap();
+        limited_pnl_per_contract_short = min(
+            limited_pnl_per_contract_short,
+            adapted_contract_limiting_amplitude,
+        );
 
         let gains_shorter = user_state
             .lcontract_minted_as_mm
@@ -184,34 +193,36 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         msg!("test : {}", user_state.lcontract_minted_as_mm);
         token::burn(cpi_ctx, user_state.lcontract_minted_as_mm)?;
 
-
-        gains_shorter_mm=gains_shorter;
+        gains_shorter_mm = gains_shorter;
     }
 
     let contract_state_m = &mut ctx.accounts.contract_state;
     if user_state.scontract_sold_as_user > 0 {
-
-        //Please note below line should not be uncommented 
+        //Please note below line should not be uncommented
         //contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_minted_as_mm).unwrap();
-        contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_shorter_user).unwrap();
+        contract_state_m.global_current_locked_usdc = contract_state_m
+            .global_current_locked_usdc
+            .checked_sub(gains_shorter_user)
+            .unwrap();
 
-        user_state.contract_position_net = user_state.contract_position_net+(user_state.scontract_sold_as_user as i64) ;
-        user_state.scontract_sold_as_user=0;
+        user_state.contract_position_net += user_state.scontract_sold_as_user as i64;
+        user_state.scontract_sold_as_user = 0;
         user_state.usdc_collateral_locked_as_user = 0;
-        user_state.usdc_free=user_state.usdc_free+gains_shorter_user;
+        user_state.usdc_free += gains_shorter_user;
     }
 
     if user_state.lcontract_minted_as_mm > 0 {
-
-        //Please note below line should not be uncommented 
+        //Please note below line should not be uncommented
         //contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(user_state.lcontract_minted_as_mm).unwrap();
-        contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_shorter_mm).unwrap();
+        contract_state_m.global_current_locked_usdc = contract_state_m
+            .global_current_locked_usdc
+            .checked_sub(gains_shorter_mm)
+            .unwrap();
 
-        user_state.contract_position_net = user_state.contract_position_net+(user_state.lcontract_minted_as_mm as i64) ;
-        user_state.lcontract_minted_as_mm=0;
+        user_state.contract_position_net += user_state.lcontract_minted_as_mm as i64;
+        user_state.lcontract_minted_as_mm = 0;
         user_state.usdc_collateral_locked_as_mm = 0;
-        user_state.usdc_free=user_state.usdc_free+gains_shorter_mm;
-       
+        user_state.usdc_free += gains_shorter_mm;
     }
 
     //Making sure the user vault is well collateralized
@@ -219,9 +230,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
-    let needed_collateral = vault_final_scontract_value
-        .checked_mul(amplitude)
-        .unwrap();
+    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
@@ -229,20 +238,17 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     //update user states
     user_state.lcontract_minted_as_mm = 0;
     user_state.scontract_sold_as_user = 0;
-    
 
-
-
-        //Making sure the whole platform is well collateralized
-        let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
-        let global_needed_collateral = global_final_issued_contract
+    //Making sure the whole platform is well collateralized
+    let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
+    let global_needed_collateral = global_final_issued_contract
         .checked_mul(pnl_lcontract_long)
         .unwrap()
         .checked_div(local_pyt_multiplier)
         .unwrap();
 
-        if global_needed_collateral > contract_state_m.global_current_locked_usdc {
-            return err!(ErrorCode::PlatformUnhealthy);
+    if global_needed_collateral > contract_state_m.global_current_locked_usdc {
+        return err!(ErrorCode::PlatformUnhealthy);
     }
 
     Ok(())

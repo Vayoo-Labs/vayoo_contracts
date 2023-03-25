@@ -47,5 +47,5 @@ pub enum ErrorCode {
     #[msg("Error in internal accounting")]
     ErrorAccounting, // 0x1785
     #[msg("LeakInFreeAccountUser")]
-    LeakInFAccount // 0x1786
+    LeakInFAccount, // 0x1786
 }

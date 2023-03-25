@@ -20,8 +20,10 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
 
     //for this condition, we should also check the amounts of tokens in the token accounts to double check
 
-    let adapted_contract_limiting_amplitude=contract_state.limiting_amplitude.checked_mul(contract_state.pyth_price_multiplier)
-    .unwrap();
+    let adapted_contract_limiting_amplitude = contract_state
+        .limiting_amplitude
+        .checked_mul(contract_state.pyth_price_multiplier)
+        .unwrap();
 
     let midrange = contract_state
         .limiting_amplitude
@@ -30,16 +32,16 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
         .checked_div(2)
         .unwrap();
 
-    let lower_bound=contract_state.starting_price.checked_sub(midrange).unwrap();
-    let upper_bound=contract_state.starting_price+midrange;
-    let mut final_price=contract_state.ending_price;
-    if final_price>upper_bound{
-        final_price=upper_bound;
+    let lower_bound = contract_state.starting_price.checked_sub(midrange).unwrap();
+    let upper_bound = contract_state.starting_price + midrange;
+    let mut final_price = contract_state.ending_price;
+    if final_price > upper_bound {
+        final_price = upper_bound;
     }
-    if final_price<lower_bound{
-        final_price=lower_bound;
+    if final_price < lower_bound {
+        final_price = lower_bound;
     }
-    
+
     let mut pnl_lcontract = final_price.checked_sub(lower_bound).unwrap();
     pnl_lcontract = min(pnl_lcontract, adapted_contract_limiting_amplitude);
     msg!(&format!("pnl_lcontract  {}", pnl_lcontract));
@@ -70,24 +72,29 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    
+
     token::burn(cpi_ctx, amount_to_redeem)?;
-    let local_pyt_multiplier=contract_state.pyth_price_multiplier;
+    let local_pyt_multiplier = contract_state.pyth_price_multiplier;
     let contract_state_m = &mut ctx.accounts.contract_state;
-    contract_state_m.global_current_issued_lcontract=contract_state_m.global_current_issued_lcontract.checked_sub(amount_to_redeem).unwrap();
-    contract_state_m.global_current_locked_usdc=contract_state_m.global_current_locked_usdc.checked_sub(gains_longer).unwrap();
-    
+    contract_state_m.global_current_issued_lcontract = contract_state_m
+        .global_current_issued_lcontract
+        .checked_sub(amount_to_redeem)
+        .unwrap();
+    contract_state_m.global_current_locked_usdc = contract_state_m
+        .global_current_locked_usdc
+        .checked_sub(gains_longer)
+        .unwrap();
 
-        let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
+    let global_final_issued_contract = contract_state_m.global_current_issued_lcontract;
 
-        let global_needed_collateral = global_final_issued_contract
+    let global_needed_collateral = global_final_issued_contract
         .checked_mul(pnl_lcontract)
         .unwrap()
         .checked_div(local_pyt_multiplier)
         .unwrap();
 
-        if global_needed_collateral > contract_state_m.global_current_locked_usdc {
-            return err!(ErrorCode::PlatformUnhealthy);
+    if global_needed_collateral > contract_state_m.global_current_locked_usdc {
+        return err!(ErrorCode::PlatformUnhealthy);
     }
     Ok(())
 }
@@ -115,7 +122,6 @@ pub struct MmSettleLong<'info> {
     #[account(mut)]
     pub escrow_vault_collateral: Box<Account<'info, TokenAccount>>,
 
-
     #[account(mut)]
     pub lcontract_mint: Box<Account<'info, Mint>>,
 
@@ -124,5 +130,5 @@ pub struct MmSettleLong<'info> {
     // Programs and Sysvars
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,  
+    pub rent: Sysvar<'info, Rent>,
 }

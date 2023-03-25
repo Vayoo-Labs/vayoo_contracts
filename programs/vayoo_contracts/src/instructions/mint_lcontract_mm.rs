@@ -65,7 +65,10 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     token::mint_to(cpi_ctx, amount)?;
 
     let user_state = &mut ctx.accounts.user_state;
-    user_state.contract_position_net = user_state.contract_position_net.checked_sub(amount as i64).unwrap() ;
+    user_state.contract_position_net = user_state
+        .contract_position_net
+        .checked_sub(amount as i64)
+        .unwrap();
 
     // Update User State
     user_state.usdc_collateral_locked_as_mm += amount_to_send;
@@ -85,10 +88,10 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
-    let limit_amplitude_loc=ctx.accounts.contract_state.limiting_amplitude;
+    let limit_amplitude_loc = ctx.accounts.contract_state.limiting_amplitude;
     let contract_state = &mut ctx.accounts.contract_state;
-    contract_state.global_current_locked_usdc+= amount_to_send;
-    contract_state.global_current_issued_lcontract+= amount;
+    contract_state.global_current_locked_usdc += amount_to_send;
+    contract_state.global_current_issued_lcontract += amount;
 
     //Making sure the whole platform is well collateralized
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;

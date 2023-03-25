@@ -105,12 +105,7 @@ pub mod vayoo_contracts {
         other_amount_threshold: u64,
         sqrt_price_limit: u128,
     ) -> Result<()> {
-        long_user::handle(
-            ctx,
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-        )
+        long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit)
     }
 
     /**
@@ -123,14 +118,8 @@ pub mod vayoo_contracts {
         other_amount_threshold: u64,
         sqrt_price_limit: u128,
     ) -> Result<()> {
-        close_long_user::handle(
-            ctx,
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-        )
+        close_long_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit)
     }
-
 
     /**
      * Short Contract
@@ -142,12 +131,7 @@ pub mod vayoo_contracts {
         other_amount_threshold: u64,
         sqrt_price_limit: u128,
     ) -> Result<()> {
-        short_user::handle(
-            ctx,
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-        )
+        short_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit)
     }
 
     /**
@@ -160,15 +144,10 @@ pub mod vayoo_contracts {
         other_amount_threshold: u64,
         sqrt_price_limit: u128,
     ) -> Result<()> {
-        close_short_user::handle(
-            ctx,
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-        )
+        close_short_user::handle(ctx, amount, other_amount_threshold, sqrt_price_limit)
     }
 
-     /**
+    /**
      * Trigger Settle Mode
      *
      * Can be called by anyone, checks whether current time > maturity time.

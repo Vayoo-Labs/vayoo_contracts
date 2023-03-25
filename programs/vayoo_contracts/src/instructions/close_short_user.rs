@@ -62,8 +62,8 @@ pub fn handle(
     };
 
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-    let amount_specified_is_input_enforced=false;
-    let a_to_b_enforced=false;
+    let amount_specified_is_input_enforced = false;
+    let a_to_b_enforced = false;
     // execute CPI
     msg!("CPI: whirlpool swap instruction");
     whirlpools::cpi::swap(
@@ -130,39 +130,32 @@ pub fn handle(
 
     let user_state = &mut ctx.accounts.user_state;
     // Update User State
-    user_state.usdc_free=user_state.usdc_free+amount_to_free;
+    user_state.usdc_free += amount_to_free;
 
     user_state.usdc_collateral_locked_as_user -= amount_bought_back
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
         .unwrap();
     user_state.scontract_sold_as_user -= amount_bought_back;
-    user_state.contract_position_net = user_state.contract_position_net + (amount_bought_back as i64) ;
+    user_state.contract_position_net += amount_bought_back as i64;
 
-    let amplitude=ctx.accounts.contract_state.limiting_amplitude;
+    let amplitude = ctx.accounts.contract_state.limiting_amplitude;
     let contract_state = &mut ctx.accounts.contract_state;
-    contract_state.global_current_locked_usdc-= amount_bought_back
-    .checked_mul(amplitude)
-    .unwrap();
-    contract_state.global_current_issued_lcontract-= amount_bought_back;
+    contract_state.global_current_locked_usdc -= amount_bought_back.checked_mul(amplitude).unwrap();
+    contract_state.global_current_issued_lcontract -= amount_bought_back;
 
     //Making sure the user vault is well collateralized
     let vault_final_scontract = ctx.accounts.vault_locked_scontract_ata.to_account_info();
     let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
-    let needed_collateral = vault_final_scontract_value
-        .checked_mul(amplitude)
-        .unwrap();
+    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
 
-
     //Making sure the whole platform is well collateralized
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
-    let global_needed_collateral = global_final_issued_contract
-        .checked_mul(amplitude)
-        .unwrap();
+    let global_needed_collateral = global_final_issued_contract.checked_mul(amplitude).unwrap();
     if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }
