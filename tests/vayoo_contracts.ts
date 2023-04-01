@@ -24,11 +24,18 @@ import {
   SYSVAR_RENT_PUBKEY,
   Transaction,
 } from "@solana/web3.js";
+import { SwitchboardProgram } from "@switchboard-xyz/solana.js";
 import { assert } from "chai";
 import { VayooContracts } from "../target/types/vayoo_contracts";
 import { superUserKey, testUserKey } from "./testKeys";
 import { sleep, toNativeAmount } from "./utils";
-import { GLOBAL_STATE_SEED, PYTH_FEED, USDC_DECIMALS } from "./utils/constants";
+import {
+  GLOBAL_STATE_SEED,
+  PYTH_FEED,
+  SWITCHBOARD_FEED,
+  USDC_DECIMALS,
+} from "./utils/constants";
+import { FeedType } from "./utils/types";
 import { addLiquidity, createWhirlpool } from "./whirlpoolUtils";
 import { ORCA_WHIRLPOOL_PROGRAM_ID } from "./whirlpoolUtils/utils/constants";
 import {
@@ -36,7 +43,7 @@ import {
   createMint,
 } from "./whirlpoolUtils/utils/token";
 
-const DEBUG_MODE = false; // If true, log useful info accross the tests on the console
+const DEBUG_MODE = true; // If true, log useful info accross the tests on the console
 
 describe("vayoo_contracts", () => {
   const provider = anchor.AnchorProvider.env();
@@ -53,10 +60,12 @@ describe("vayoo_contracts", () => {
   const testUser = testUserKey.keypair;
   const testUserWallet = new anchor.Wallet(testUser);
   const pythFeed = new PublicKey(PYTH_FEED);
+  const switchboardFeed = new PublicKey(SWITCHBOARD_FEED);
   let usdcMint: PublicKey;
 
   let accounts: any = {
     pythFeed,
+    switchboardFeed,
     systemProgram: SystemProgram.programId,
     rent: SYSVAR_RENT_PUBKEY,
     tokenProgram: TOKEN_PROGRAM_ID,
@@ -128,10 +137,10 @@ describe("vayoo_contracts", () => {
     assert.ok(globalStateAccount.totalTvlUsdc.toNumber() == 0);
   });
 
-  it("Initialize Contract Account/State", async () => {
+  it("Initialize Contract Account/State - Switchboard", async () => {
     const amplitude = new BN(30);
     let need_to_find_relevant_mint = true;
-    let contractName = "xv1";
+    let contractName = "sb-xv1";
     let [scontractMint, scontractMintBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from(contractName), Buffer.from("scontract")],
@@ -212,7 +221,8 @@ describe("vayoo_contracts", () => {
         contractName,
         contractStateKeyBump,
         contractEndTime,
-        amplitude
+        amplitude,
+        FeedType.Switchboard
       )
       .accounts({
         ...accounts,
@@ -235,12 +245,11 @@ describe("vayoo_contracts", () => {
       );
       console.log(
         "Contract Expo: ",
-        contractStateAccount.pythPriceMultiplier.toString()
+        contractStateAccount.oraclePriceMultiplier.toString()
       );
     }
-
     assert.ok(contractStateAccount.isHalted == false);
-    assert.ok(contractStateAccount.pythFeedId.equals(pythFeed));
+    assert.ok(contractStateAccount.oracleFeedKey.equals(switchboardFeed));
   });
 
   it("Cannot Trigger Settle Mode - Maturity Not Reached", async () => {
@@ -641,7 +650,8 @@ describe("vayoo_contracts", () => {
         contractName,
         contractStateKeyBump,
         contractEndTime,
-        amplitude
+        amplitude,
+        FeedType.Pyth
       )
       .accounts({
         ...accounts,
@@ -758,7 +768,8 @@ describe("vayoo_contracts", () => {
         contractName,
         contractStateKeyBump,
         contractEndTime,
-        amplitude
+        amplitude,
+        FeedType.Pyth
       )
       .accounts({
         ...accounts,

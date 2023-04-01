@@ -7,6 +7,7 @@ pub mod errors;
 pub mod instructions;
 pub mod states;
 pub mod utils;
+pub mod types;
 
 // crates
 use crate::instructions::*;
@@ -40,8 +41,9 @@ pub mod vayoo_contracts {
         bump: u8,
         ending_time: u64,
         limiting_amplitude: u64,
+        feed_type: u8,
     ) -> Result<()> {
-        initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude)
+        initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude, feed_type)
     }
 
     /**

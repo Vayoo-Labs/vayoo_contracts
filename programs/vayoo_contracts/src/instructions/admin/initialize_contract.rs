@@ -2,10 +2,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use std::mem::size_of;
+use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_PROGRAM_ID};
 
 //local imports
 use crate::errors::ErrorCode;
 use crate::states::{contract_state::ContractState, PriceFeed};
+use crate::types::FeedType;
 
 pub fn handle(
     ctx: Context<InitializeContract>,
@@ -13,9 +15,14 @@ pub fn handle(
     bump: u8,
     ending_time: u64,
     limiting_amplitude: u64,
+    feed_type: u8,
 ) -> Result<()> {
-    //[Medium] Initialize mint of the token
     msg!("INITIALIZING WEEKLY CONTRACT");
+
+    require!(
+        feed_type < FeedType::Unknown as u8,
+        ErrorCode::InvalidFeedType
+    );
 
     let contract_state = &mut ctx.accounts.contract_state;
     let current_timestamp = Clock::get()?.unix_timestamp;
@@ -32,23 +39,54 @@ pub fn handle(
     contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
+    contract_state.feed_type = feed_type;
 
-    //Get price from pyth and write it in the account
-    contract_state.pyth_feed_id = ctx.accounts.pyth_feed.key();
-    let pyth_feed_price = ctx
-        .accounts
-        .pyth_feed
-        .get_price_no_older_than(current_timestamp, 60)
-        .ok_or(ErrorCode::PythOffline)?;
-    msg!(&format!("Initializing at  {}", pyth_feed_price.price));
+    if feed_type == FeedType::Pyth as u8 {
+        // PYTH
+        let pyth_feed_price = ctx
+            .accounts
+            .pyth_feed
+            .get_price_no_older_than(current_timestamp, 60)
+            .ok_or(ErrorCode::PythOffline)?;
 
-    let mut multiplicator = (-pyth_feed_price.expo) as u32;
-    let base = 10 as u32;
-    multiplicator = base.pow(multiplicator);
-    contract_state.pyth_price_multiplier = multiplicator as u64;
+        let mut multiplicator = (-pyth_feed_price.expo) as u32;
+        let base = 10 as u32;
+        multiplicator = base.pow(multiplicator);
+
+        msg!("Pyth, Initializing at {}", pyth_feed_price.price);
+
+        contract_state.oracle_feed_key = ctx.accounts.pyth_feed.key();
+        contract_state.oracle_price_multiplier = multiplicator as u64;
+        contract_state.starting_price = pyth_feed_price.price as u64;
+    } else if feed_type == FeedType::Switchboard as u8 {
+        // SWITCH_BOARD
+        // check feed owner
+        let owner = *ctx.accounts.switchboard_feed.to_account_info().owner;
+        if owner != SWITCHBOARD_PROGRAM_ID {
+            return Err(error!(ErrorCode::InvalidSwitchboardAccount));
+        }
+        let switchboard_feed = &ctx.accounts.switchboard_feed.load()?;
+        let switchboard_result = switchboard_feed.get_result()?;
+        let expo = switchboard_result.scale;
+        let price = switchboard_result.mantissa;
+
+        // check whether the feed has been updated in the last 60 seconds
+        switchboard_feed
+            .check_staleness(Clock::get().unwrap().unix_timestamp, 60)
+            .map_err(|_| error!(ErrorCode::StaleFeed))?;
+
+        let mut multiplicator = (expo) as u32;
+        let base = 10 as u32;
+        multiplicator = base.pow(multiplicator);
+
+        msg!("Switchboard, Initializing at {}", price);
+
+        contract_state.oracle_feed_key = ctx.accounts.switchboard_feed.key();
+        contract_state.oracle_price_multiplier = multiplicator as u64;
+        contract_state.starting_price = price as u64;
+    }
 
     contract_state.limiting_amplitude = limiting_amplitude;
-    contract_state.starting_price = pyth_feed_price.price as u64;
     contract_state.starting_time = current_timestamp as u64;
     contract_state.ending_price = 0;
     contract_state.ending_time = ending_time;
@@ -109,6 +147,7 @@ pub struct InitializeContract<'info> {
 
     pub collateral_mint: Box<Account<'info, Mint>>,
 
+    pub switchboard_feed: AccountLoader<'info, AggregatorAccountData>,
     pub pyth_feed: Account<'info, PriceFeed>,
 
     // Programs and Sysvars

@@ -48,4 +48,14 @@ pub enum ErrorCode {
     ErrorAccounting, // 0x1785
     #[msg("LeakInFreeAccountUser")]
     LeakInFAccount, // 0x1786
+    #[msg("Invalid Feed Type")]
+    InvalidFeedType, // 0x1787
+    #[msg("Not a valid Switchboard account")]
+    InvalidSwitchboardAccount, // 0x1788
+    #[msg("Switchboard feed has not been updated in 5 minutes")]
+    StaleFeed, // 0x1789
+    #[msg("Switchboard feed exceeded provided confidence interval")]
+    ConfidenceIntervalExceeded, // 0x178a,
+    #[msg("Invalid Feed")]
+    InvalidOraclefeed, // 0x178b
 }
