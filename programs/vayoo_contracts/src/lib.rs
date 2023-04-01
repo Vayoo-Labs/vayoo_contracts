@@ -13,6 +13,10 @@ pub mod types;
 use crate::instructions::*;
 use crate::utils::*;
 
+#[cfg(feature="dev")]
+declare_id!("G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd");
+
+#[cfg(feature="prod")]
 declare_id!("6ccnZSaDcMwKe1xwHbubs4q2GdPEr7hSK59A3GddJpte");
 
 #[program]
