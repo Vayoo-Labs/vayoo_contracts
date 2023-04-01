@@ -22,12 +22,12 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
 
     let adapted_contract_limiting_amplitude = contract_state
         .limiting_amplitude
-        .checked_mul(contract_state.pyth_price_multiplier)
+        .checked_mul(contract_state.oracle_price_multiplier)
         .unwrap();
 
     let midrange = contract_state
         .limiting_amplitude
-        .checked_mul(contract_state.pyth_price_multiplier)
+        .checked_mul(contract_state.oracle_price_multiplier)
         .unwrap()
         .checked_div(2)
         .unwrap();
@@ -48,7 +48,7 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     let gains_longer = amount_to_redeem
         .checked_mul(pnl_lcontract)
         .unwrap()
-        .checked_div(contract_state.pyth_price_multiplier)
+        .checked_div(contract_state.oracle_price_multiplier)
         .unwrap();
 
     let cpi_accounts_transfer_pnl_long = Transfer {
@@ -74,7 +74,7 @@ pub fn handle(ctx: Context<MmSettleLong>, amount_to_redeem: u64) -> Result<()> {
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
     token::burn(cpi_ctx, amount_to_redeem)?;
-    let local_pyt_multiplier = contract_state.pyth_price_multiplier;
+    let local_pyt_multiplier = contract_state.oracle_price_multiplier;
     let contract_state_m = &mut ctx.accounts.contract_state;
     contract_state_m.global_current_issued_lcontract = contract_state_m
         .global_current_issued_lcontract

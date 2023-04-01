@@ -19,16 +19,16 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         &[user_state.bump],
     ]];
     let amplitude = ctx.accounts.contract_state.limiting_amplitude;
-    let local_pyt_multiplier = contract_state.pyth_price_multiplier;
+    let local_pyt_multiplier = contract_state.oracle_price_multiplier;
 
     let adapted_contract_limiting_amplitude = contract_state
         .limiting_amplitude
-        .checked_mul(contract_state.pyth_price_multiplier)
+        .checked_mul(contract_state.oracle_price_multiplier)
         .unwrap();
 
     let midrange = contract_state
         .limiting_amplitude
-        .checked_mul(contract_state.pyth_price_multiplier)
+        .checked_mul(contract_state.oracle_price_multiplier)
         .unwrap()
         .checked_div(2)
         .unwrap();
@@ -71,7 +71,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
             .scontract_sold_as_user
             .checked_mul(limited_pnl_per_contract_short)
             .unwrap()
-            .checked_div(contract_state.pyth_price_multiplier)
+            .checked_div(contract_state.oracle_price_multiplier)
             .unwrap();
 
         //loss_shorter inited at the amount of collateral locked
@@ -138,7 +138,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
             .lcontract_minted_as_mm
             .checked_mul(limited_pnl_per_contract_short)
             .unwrap()
-            .checked_div(contract_state.pyth_price_multiplier)
+            .checked_div(contract_state.oracle_price_multiplier)
             .unwrap();
         //loss_shorter inited at the amount of collateral locked
         let mut loss_shorter = user_state

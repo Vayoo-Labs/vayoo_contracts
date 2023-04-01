@@ -33,12 +33,12 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         //for this condition, we should also check the amounts of tokens in the token accounts to double check
         let adapted_contract_limiting_amplitude = contract_state
             .limiting_amplitude
-            .checked_mul(contract_state.pyth_price_multiplier)
+            .checked_mul(contract_state.oracle_price_multiplier)
             .unwrap();
 
         let midrange = contract_state
             .limiting_amplitude
-            .checked_mul(contract_state.pyth_price_multiplier)
+            .checked_mul(contract_state.oracle_price_multiplier)
             .unwrap()
             .checked_div(2)
             .unwrap();
@@ -62,7 +62,7 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
             .lcontract_bought_as_user
             .checked_mul(pnl_lcontract)
             .unwrap()
-            .checked_div(contract_state.pyth_price_multiplier)
+            .checked_div(contract_state.oracle_price_multiplier)
             .unwrap();
 
         let cpi_accounts_transfer_pnl_long = Transfer {
@@ -90,7 +90,7 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         msg!("user settle burn: {}", user_state.lcontract_bought_as_user);
         token::burn(cpi_ctx, user_state.lcontract_bought_as_user)?;
 
-        let local_pyt_multiplier = contract_state.pyth_price_multiplier;
+        let local_pyt_multiplier = contract_state.oracle_price_multiplier;
         let contract_state_m = &mut ctx.accounts.contract_state;
         //update user states
         contract_state_m.global_current_issued_lcontract = contract_state_m
