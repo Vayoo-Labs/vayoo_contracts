@@ -39,7 +39,7 @@ pub fn handle(
     contract_state.collateral_mint = ctx.accounts.collateral_mint.key();
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
-    contract_state.feed_type = feed_type;
+    contract_state.oracle_feed_type = feed_type;
 
     if feed_type == FeedType::Pyth as u8 {
         // PYTH

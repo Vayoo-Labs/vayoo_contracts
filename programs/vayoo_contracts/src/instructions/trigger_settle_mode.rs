@@ -19,7 +19,7 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
 
         let current_timestamp = Clock::get()?.unix_timestamp;
 
-        if contract_state.feed_type == FeedType::Pyth as u8 {
+        if contract_state.oracle_feed_type == FeedType::Pyth as u8 {
             // PYTH
             require!(
                 contract_state.oracle_feed_key == ctx.accounts.pyth_feed.key(),
@@ -37,7 +37,7 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
             );
 
             contract_state.ending_price = pyth_feed_price.price as u64;
-        } else if contract_state.feed_type == FeedType::Switchboard as u8 {
+        } else if contract_state.oracle_feed_type == FeedType::Switchboard as u8 {
             // SWITCH_BOARD
             require!(
                 contract_state.oracle_feed_key == ctx.accounts.switchboard_feed.key(),

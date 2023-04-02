@@ -17,7 +17,7 @@ pub struct ContractState {
     pub collateral_mint: Pubkey,  
     pub lcontract_mint: Pubkey,   
     pub scontract_mint: Pubkey,     
-    pub feed_type: u8,
+    pub oracle_feed_type: u8,
     pub oracle_feed_key: Pubkey,   
     pub oracle_price_multiplier: u64, 
 
