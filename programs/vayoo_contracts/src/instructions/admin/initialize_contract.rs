@@ -69,21 +69,27 @@ pub fn handle(
         let switchboard_result = switchboard_feed.get_result()?;
         let expo = switchboard_result.scale;
         let price = switchboard_result.mantissa;
+        
 
         // check whether the feed has been updated in the last 60 seconds
         switchboard_feed
             .check_staleness(Clock::get().unwrap().unix_timestamp, 60)
             .map_err(|_| error!(ErrorCode::StaleFeed))?;
 
-        let mut multiplicator = (expo) as u32;
+        let mut multiplicator_swithchboard = (expo) as u32;
         let base = 10 as u32;
-        multiplicator = base.pow(multiplicator);
-
-        msg!("Switchboard, Initializing at {}", price);
+        multiplicator_swithchboard = base.pow(multiplicator_swithchboard);
+        
+        let mut multiplicator_vayoo = 6 as u32;
+        let base = 10 as u32;
+        multiplicator_vayoo = base.pow(multiplicator_vayoo);
+        let mut real_price=(price) as u64;
+        real_price=real_price.checked_mul(multiplicator_vayoo as u64).unwrap().checked_div(multiplicator_swithchboard as u64).unwrap();
+        msg!("Switchboard, Initializing at {}", real_price);
 
         contract_state.oracle_feed_key = ctx.accounts.switchboard_feed.key();
-        contract_state.oracle_price_multiplier = multiplicator as u64;
-        contract_state.starting_price = price as u64;
+        contract_state.oracle_price_multiplier = multiplicator_vayoo as u64;
+        contract_state.starting_price = real_price as u64;
     }
 
     contract_state.limiting_amplitude = limiting_amplitude;
