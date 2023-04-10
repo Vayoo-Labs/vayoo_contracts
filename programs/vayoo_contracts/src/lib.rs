@@ -7,11 +7,16 @@ pub mod errors;
 pub mod instructions;
 pub mod states;
 pub mod utils;
+pub mod types;
 
 // crates
 use crate::instructions::*;
 use crate::utils::*;
 
+#[cfg(feature="dev")]
+declare_id!("G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd");
+
+#[cfg(feature="prod")]
 declare_id!("6ccnZSaDcMwKe1xwHbubs4q2GdPEr7hSK59A3GddJpte");
 
 #[program]
@@ -40,8 +45,9 @@ pub mod vayoo_contracts {
         bump: u8,
         ending_time: u64,
         limiting_amplitude: u64,
+        feed_type: u8,
     ) -> Result<()> {
-        initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude)
+        initialize_contract::handle(ctx, contract_name, bump, ending_time, limiting_amplitude, feed_type)
     }
 
     /**

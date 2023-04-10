@@ -23,6 +23,18 @@ address = "BGnhGXT9CCt5WYS23zg9sqsAT2MGXkq7VSwch9pML82W"
 [[test.validator.clone]]
 address = "GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU"
 
+# Switchboard Program IDL
+[[test.validator.clone]]
+address = "Fi8vncGpNKbq62gPo56G4toCehWNy77GgqGkTaAF5Lkk"
+
+# Switchboard Program 
+[[test.validator.clone]]
+address = "SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f"
+
+# Switchboard Btc Price Feed
+[[test.validator.clone]]
+address = "8SXvChNYFhRq4EZuZvnhjrB3jJRQCv4k3P4W6hesH3Ee"
+
 [features]
 seeds = false
 skip-lint = false
@@ -38,7 +50,8 @@ wallet = "./tests/testKeys/testUser.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-deploy-idl="anchor build; ./migrations/deploy-idl.sh"
+deploy-dev="git fetch; git checkout dev/mainnet; git pull origin dev/mainnet; anchor build -- --features=dev --no-default-features; solana program deploy ./target/deploy/vayoo_contracts.so --program-id G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd"
+deploy-prod="git fetch; git checkout prod/mainnet; git pull origin prod/mainnet; anchor build -- --features=prod --no-default-features; solana program write-buffer ./target/deploy/vayoo_contracts.so; ./scripts/deploy-idl.sh"
 
 [test]
 startup_wait = 100_000

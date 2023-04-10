@@ -13,11 +13,16 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
+
+default = ["prod"]
+
+dev = []
+prod = []
 
 [dependencies]
-anchor-lang = "0.26.0"
-anchor-spl = "0.26.0"
+anchor-lang = "=0.26.0"
+anchor-spl = "=0.26.0"
 pyth-sdk-solana = "0.7.1"
 pyth-sdk = "0.7.0"
+switchboard-v2 = "=0.1.22"
 whirlpools = "0.3.0"
