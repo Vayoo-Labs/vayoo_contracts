@@ -35,6 +35,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
         .limiting_amplitude
         .checked_mul(amount)
         .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
+        
     let cpi_accounts = Transfer {
         from: ctx.accounts.vault_free_collateral_ata.to_account_info(),
         to: ctx.accounts.vault_locked_collateral_ata.to_account_info(),

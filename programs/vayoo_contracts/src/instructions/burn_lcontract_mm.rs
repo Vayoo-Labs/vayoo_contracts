@@ -92,7 +92,7 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
     let global_needed_collateral = global_final_issued_contract
         .checked_mul(limit_amplitude_loc)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }
