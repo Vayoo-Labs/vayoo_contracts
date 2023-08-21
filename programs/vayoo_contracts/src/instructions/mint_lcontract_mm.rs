@@ -15,7 +15,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Amount he needs to lock = max value of the token = upperbound-lowerbound (in $)=2xcontract_limiting_bound_amplitude
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
-
+    let contract_state_1=ctx.accounts.contract_state;
     let user_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.user_state.contract_account.as_ref(),
         ctx.accounts.user_state.authority.as_ref(),
@@ -34,7 +34,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
         .contract_state
         .limiting_amplitude
         .checked_mul(amount)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     let cpi_accounts = Transfer {
         from: ctx.accounts.vault_free_collateral_ata.to_account_info(),
         to: ctx.accounts.vault_locked_collateral_ata.to_account_info(),
@@ -84,7 +84,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
     let needed_collateral = vault_final_scontract_value
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
@@ -97,7 +97,7 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
     let global_needed_collateral = global_final_issued_contract
         .checked_mul(limit_amplitude_loc)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }

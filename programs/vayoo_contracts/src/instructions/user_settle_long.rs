@@ -33,13 +33,11 @@ pub fn handle(ctx: Context<UserSettleLong>) -> Result<()> {
         //for this condition, we should also check the amounts of tokens in the token accounts to double check
         let adapted_contract_limiting_amplitude = contract_state
             .limiting_amplitude
-            .checked_mul(contract_state.oracle_price_multiplier)
-            .unwrap();
+;
 
         let midrange = contract_state
             .limiting_amplitude
-            .checked_mul(contract_state.oracle_price_multiplier)
-            .unwrap()
+
             .checked_div(2)
             .unwrap();
 

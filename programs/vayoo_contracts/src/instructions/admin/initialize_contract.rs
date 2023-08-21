@@ -40,6 +40,7 @@ pub fn handle(
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
     contract_state.oracle_feed_type = feed_type;
+    contract_state.bands_shift = 0;
 
     if feed_type == FeedType::Pyth as u8 {
         // PYTH

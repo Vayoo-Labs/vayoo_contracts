@@ -22,6 +22,7 @@ pub struct ContractState {
     pub oracle_price_multiplier: u64, 
 
     pub limiting_amplitude: u64, 
+    pub bands_shift: u64, 
     pub starting_price: u64,   
     pub starting_time: u64,      
     pub ending_price: u64,       
