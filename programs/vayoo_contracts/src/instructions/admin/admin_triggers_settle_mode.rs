@@ -8,7 +8,7 @@ use crate::states::PriceFeed;
 //local imports
 use crate::states::contract_state::ContractState;
 
-pub fn handle(ctx: Context<TriggerSettleMode>,test_settlement_price: u64) -> Result<()> {
+pub fn handle(ctx: Context<AdminTriggersSettleMode>,test_settlement_price: u64) -> Result<()> {
     let contract_state = &mut ctx.accounts.contract_state;
     let time_now = Clock::get()?.unix_timestamp;
     contract_state.ending_price = test_settlement_price;

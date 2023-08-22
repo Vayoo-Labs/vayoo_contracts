@@ -16,7 +16,7 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
 
-    let contract_state_1=ctx.accounts.contract_state;
+    let contract_state_1=&ctx.accounts.contract_state;
     let amount_to_send = contract_state_1.limiting_amplitude
         .checked_mul(amount)
         .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
@@ -92,7 +92,7 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
     let global_needed_collateral = global_final_issued_contract
         .checked_mul(limit_amplitude_loc)
-        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
+        .unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
     if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }

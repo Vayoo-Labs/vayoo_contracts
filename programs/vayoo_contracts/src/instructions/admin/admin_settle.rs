@@ -227,7 +227,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
-    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
+    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap().checked_div(contract_state_m.oracle_price_multiplier).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }

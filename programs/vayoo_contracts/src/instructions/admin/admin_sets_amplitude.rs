@@ -12,7 +12,7 @@ use crate::states::contract_state::ContractState;
 pub fn handle(ctx: Context<AdminSetsAmplitude>,input_limiting_amplitude : u64) -> Result<()> {
 
     let contract_state_m = &mut ctx.accounts.contract_state;
-    contract_state_m.limit_amplitude=input_limiting_amplitude;
+    contract_state_m.limiting_amplitude=input_limiting_amplitude;
     Ok(())
 }
 
