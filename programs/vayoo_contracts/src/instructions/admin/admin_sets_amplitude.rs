@@ -1,12 +1,8 @@
-use std::cmp::min;
 
 //libraries
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 
-use crate::states::UserState;
 //local imports
-use crate::errors::ErrorCode;
 use crate::states::contract_state::ContractState;
 
 pub fn handle(ctx: Context<AdminSetsAmplitude>,input_limiting_amplitude : u64) -> Result<()> {
@@ -29,6 +25,4 @@ pub struct AdminSetsAmplitude<'info> {
         //has_one = escrow_vault_collateral
     )]
     pub contract_state: Box<Account<'info, ContractState>>,
-
-    
 }
