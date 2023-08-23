@@ -34,5 +34,7 @@ pub struct ContractState {
     pub global_current_locked_usdc: u64,
     pub global_current_issued_lcontract: u64,
 
+    pub test_mode: u64,
+
     pub reserved: [u64; 13],
 }

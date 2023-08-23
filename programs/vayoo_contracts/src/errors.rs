@@ -58,4 +58,6 @@ pub enum ErrorCode {
     ConfidenceIntervalExceeded, // 0x178a,
     #[msg("Invalid Feed")]
     InvalidOraclefeed, // 0x178b
+    #[msg("Cant be used in prod mode")]
+    NoTestInProd, // 0x178b
 }
