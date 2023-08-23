@@ -78,7 +78,7 @@ describe("vayoo_contracts", () => {
     console.log("Test User Key: ", testUser.publicKey.toString());
   }
 
-  let mode_to_test=1;//0 => endprice==startprice | 1=> endprice>upperbound | 2=> endprice< lowerbound
+  let mode_to_test=0;//0 => endprice==startprice | 1=> endprice>upperbound | 2=> endprice< lowerbound
 
   before("Setting up environment", async () => {
     const txHash = await connection.requestAirdrop(
@@ -142,7 +142,7 @@ describe("vayoo_contracts", () => {
   });
 
   it("Initialize Contract Account/State - Switchboard", async () => {
-    const amplitude = new BN(30_000_000);
+    const amplitude = new BN(100_000);
     
     let need_to_find_relevant_mint = true;
     let contractName = "sb-xv1";
@@ -515,10 +515,18 @@ describe("vayoo_contracts", () => {
       testUser.publicKey,
       true
     );
+    const contractStateAccount = await program.account.contractState.fetch(
+      accounts.contractState
+    );
+    let ratio =
+    Number(contractStateAccount.globalCurrentLockedUsdc) /
+    Number(contractStateAccount.globalCurrentIssuedLcontract);
+
 
     let addLiquidityAmount = 10; // amount in lcontract nb
-    const initial_price = 15; // initial price of the pool
+    const initial_price = ratio/2; // initial price of the pool
     const spread = 0.01; // liquidity spread
+    console.log('Starting price pool',initial_price)
 
     const whirlpoolKey = await createWhirlpool(
       whirlpoolCtx,
