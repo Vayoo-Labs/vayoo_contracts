@@ -13,6 +13,8 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let contract_state = &ctx.accounts.contract_state;
 
+    require!(contract_state.is_settling, ErrorCode::NotSettling);
+
     let user_state_signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
         user_state.authority.as_ref(),

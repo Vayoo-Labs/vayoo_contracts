@@ -13,6 +13,8 @@ pub fn handle(
 ) -> Result<()> {
     let _lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let contract_state_1=&ctx.accounts.contract_state;
+    require!(!contract_state_1.is_settling, ErrorCode::IsSettling);
+
     let token_account_a;
     let token_account_b;
 

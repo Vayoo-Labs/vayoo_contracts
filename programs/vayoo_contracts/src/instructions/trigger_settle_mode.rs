@@ -60,7 +60,7 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
             let base = 10 as u128;
             let multiplicator_swithchboard = base.pow(expo_switchboard);
             
-            let expo_vayoo = 6 as u32;
+            let expo_vayoo = contract_state.vayoo_precisions as u32;
             let base = 10 as u128;
             let multiplicator_vayoo = base.pow(expo_vayoo);
             let mut real_price=(price) as u128;

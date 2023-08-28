@@ -19,7 +19,8 @@ pub struct ContractState {
     pub scontract_mint: Pubkey,     
     pub oracle_feed_type: u8,
     pub oracle_feed_key: Pubkey,   
-    pub oracle_price_multiplier: u64, 
+    pub oracle_price_multiplier: u64,
+    pub vayoo_precisions:u8 ,
 
     pub limiting_amplitude: u64, 
     pub bands_shift: u64, 
@@ -35,6 +36,7 @@ pub struct ContractState {
     pub global_current_issued_lcontract: u64,
 
     pub test_mode: u64,
+
 
     pub reserved: [u64; 13],
 }

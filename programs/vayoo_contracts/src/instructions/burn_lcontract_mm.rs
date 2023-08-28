@@ -17,6 +17,8 @@ pub fn handle(ctx: Context<BurnContractMm>, amount: u64) -> Result<()> {
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
 
     let contract_state_1=&ctx.accounts.contract_state;
+    require!(!contract_state_1.is_settling, ErrorCode::IsSettling);
+
     let amount_to_send = contract_state_1.limiting_amplitude
         .checked_mul(amount)
         .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();

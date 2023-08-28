@@ -59,6 +59,7 @@ pub fn handle(
         contract_state.oracle_feed_key = ctx.accounts.pyth_feed.key();
         contract_state.oracle_price_multiplier = multiplicator as u64;
         contract_state.starting_price = pyth_feed_price.price as u64;
+        contract_state.vayoo_precisions=multiplicator as u8;
     } else if feed_type == FeedType::Switchboard as u8 {
         // SWITCH_BOARD
         // check feed owner
@@ -94,6 +95,7 @@ pub fn handle(
         contract_state.oracle_feed_key = ctx.accounts.switchboard_feed.key();
         contract_state.oracle_price_multiplier = multiplicator_vayoo as u64;
         contract_state.starting_price = real_price as u64;
+        contract_state.vayoo_precisions=expo_vayoo as u8;
     }
 
     contract_state.limiting_amplitude = limiting_amplitude;

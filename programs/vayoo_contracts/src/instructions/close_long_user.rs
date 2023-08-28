@@ -11,6 +11,7 @@ pub fn handle(
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
 ) -> Result<()> {
+    
     let lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
     let free_usdc_bal_before = ctx.accounts.vault_free_collateral_ata.amount;
 
@@ -18,6 +19,9 @@ pub fn handle(
     let token_account_b;
 
     let user_state = &mut ctx.accounts.user_state;
+
+    let contract_state1 = &mut ctx.accounts.contract_state;
+    require!(!contract_state1.is_settling, ErrorCode::IsSettling);
 
     require!(
         amount <= user_state.lcontract_bought_as_user,

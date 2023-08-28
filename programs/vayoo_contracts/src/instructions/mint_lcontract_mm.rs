@@ -15,7 +15,11 @@ pub fn handle(ctx: Context<MintContractMm>, amount: u64) -> Result<()> {
     //Amount he needs to lock = max value of the token = upperbound-lowerbound (in $)=2xcontract_limiting_bound_amplitude
     //Why ? because we assume the worst case scenario : the user mints the token , sell it on the whirlpool for 0 (looooser)
     //And after the token pumps and worths its max value -> we need to have that max value locked (+ the user is stupid and is a loser and cannot add capital -> we cannot assume he will be able to add capital in the sc after the minting)
+
+
     let contract_state_1=&ctx.accounts.contract_state;
+    require!(!contract_state_1.is_settling, ErrorCode::IsSettling);
+
     let user_signer_seeds: &[&[&[u8]]] = &[&[
         ctx.accounts.user_state.contract_account.as_ref(),
         ctx.accounts.user_state.authority.as_ref(),

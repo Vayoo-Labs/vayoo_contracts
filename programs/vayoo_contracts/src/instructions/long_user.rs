@@ -18,6 +18,10 @@ pub fn handle(
     let token_account_b;
 
     let user_state = &mut ctx.accounts.user_state;
+    let contract_state1 = &mut ctx.accounts.contract_state;
+    require!(!contract_state1.is_settling, ErrorCode::IsSettling);
+
+    
     if user_state.scontract_sold_as_user > 0 {
         return err!(ErrorCode::CloseShortBeforeLong);
     }
