@@ -19,7 +19,6 @@ pub fn handle(
     let token_account_b;
 
     let user_state = &ctx.accounts.user_state;
-    let contract_state1 = & ctx.accounts.contract_state;
     require!(!contract_state_1.is_settling, ErrorCode::IsSettling);
 
     let signer_seeds: &[&[&[u8]]] = &[&[

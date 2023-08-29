@@ -1,6 +1,5 @@
 //libraries
 use crate::errors::ErrorCode;
-use crate::types::FeedType;
 use anchor_lang::prelude::*;
 use switchboard_v2::AggregatorAccountData;
 
@@ -13,7 +12,6 @@ pub fn handle(ctx: Context<AdminTriggersSettleMode>,test_settlement_price: u64) 
     let contract_state = &mut ctx.accounts.contract_state;
     require!(contract_state.test_mode==1, ErrorCode::NoTestInProd);
 
-    let time_now = Clock::get()?.unix_timestamp;
     contract_state.ending_price = test_settlement_price;
 
     contract_state.is_settling = true;
