@@ -50,8 +50,8 @@ wallet = "./tests/testKeys/testUser.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-deploy-dev="git fetch; git checkout dev/mainnet; git pull origin dev/mainnet; anchor build -- --features=dev --no-default-features; solana program deploy ./target/deploy/vayoo_contracts.so --program-id G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd; ./scripts/deploy-idl-dev.sh"
-deploy-prod="git fetch; git checkout prod/mainnet; git pull origin prod/mainnet; anchor build -- --features=prod --no-default-features; solana program write-buffer ./target/deploy/vayoo_contracts.so; ./scripts/deploy-idl-prod.sh"
+deploy-dev="git fetch; git checkout dev/mainnet; git pull origin dev/mainnet; anchor build -- --features=dev --no-default-features; solana program deploy ./target/deploy/vayoo_contracts.so --program-id G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd; ./migrations/deploy-idl-dev.sh"
+deploy-prod="git fetch; git checkout prod/mainnet; git pull origin prod/mainnet; anchor build -- --features=prod --no-default-features; solana program write-buffer ./target/deploy/vayoo_contracts.so; ./migrations/deploy-idl-prod.sh"
 
 [test]
 startup_wait = 100_000
