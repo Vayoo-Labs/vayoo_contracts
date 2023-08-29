@@ -1,0 +1,1 @@
+anchor idl upgrade -f ./target/idl/vayoo_contracts.json G8mPtu5f87TaEipqSbYVtKtbdvZg19aBtCRuvJyogAqd --provider.cluster "https://api.metaplex.solana.com/" --provider.wallet ~/.config/solana/id.json
