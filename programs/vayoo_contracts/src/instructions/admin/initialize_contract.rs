@@ -59,7 +59,7 @@ pub fn handle(
         contract_state.oracle_feed_key = ctx.accounts.pyth_feed.key();
         contract_state.oracle_price_multiplier = multiplicator as u64;
         contract_state.starting_price = pyth_feed_price.price as u64;
-        contract_state.vayoo_precisions=multiplicator as u8;
+        contract_state.vayoo_precisions = multiplicator as u8;
     } else if feed_type == FeedType::Switchboard as u8 {
         // SWITCH_BOARD
         // check feed owner
@@ -79,23 +79,26 @@ pub fn handle(
             .check_staleness(Clock::get().unwrap().unix_timestamp, 60)
             .map_err(|_| error!(ErrorCode::StaleFeed))?;
 
-        let  expo_switchboard = (expo) as u32;
+        let expo_switchboard = (expo) as u32;
         let base = 10 as u128;
         let multiplicator_swithchboard = base.pow(expo_switchboard);
-        
+
         let expo_vayoo = 6 as u32;
         let base = 10 as u128;
         let multiplicator_vayoo = base.pow(expo_vayoo);
-        let mut real_price=(price) as u128;
+        let mut real_price = (price) as u128;
 
-  
-        real_price=real_price.checked_mul(multiplicator_vayoo as u128).unwrap().checked_div(multiplicator_swithchboard).unwrap();
+        real_price = real_price
+            .checked_mul(multiplicator_vayoo as u128)
+            .unwrap()
+            .checked_div(multiplicator_swithchboard)
+            .unwrap();
         msg!("Switchboard, Initializing at {}", real_price);
 
         contract_state.oracle_feed_key = ctx.accounts.switchboard_feed.key();
         contract_state.oracle_price_multiplier = multiplicator_vayoo as u64;
         contract_state.starting_price = real_price as u64;
-        contract_state.vayoo_precisions=expo_vayoo as u8;
+        contract_state.vayoo_precisions = expo_vayoo as u8;
     }
 
     contract_state.limiting_amplitude = limiting_amplitude;
@@ -107,7 +110,16 @@ pub fn handle(
     contract_state.current_tvl_underlying = 0;
     contract_state.global_current_locked_usdc = 0;
     contract_state.global_current_issued_lcontract = 0;
-    contract_state.test_mode=1;//If 1 : test. If 0 : prod
+
+    #[cfg(feature = "dev")]
+    {
+        contract_state.test_mode = 1;
+    }
+
+    #[cfg(feature = "prod")]
+    {
+        contract_state.test_mode = 0; 
+    }
 
     Ok(())
 }
