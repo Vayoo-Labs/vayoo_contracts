@@ -31,9 +31,9 @@ address = "Fi8vncGpNKbq62gPo56G4toCehWNy77GgqGkTaAF5Lkk"
 [[test.validator.clone]]
 address = "SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f"
 
-# Switchboard Btc Price Feed
+# Switchboard Rlb Price Feed
 [[test.validator.clone]]
-address = "8SXvChNYFhRq4EZuZvnhjrB3jJRQCv4k3P4W6hesH3Ee"
+address = "Hemj3drbpJPgUnvrXwqDFp5D49pNBMgQGKvbyD2Uu8g8"
 
 [features]
 seeds = false
