@@ -63,6 +63,8 @@ describe("vayoo_contracts", () => {
   const switchboardFeed = new PublicKey(SWITCHBOARD_FEED);
   let usdcMint: PublicKey;
 
+  let starting_price_global=0
+
   let accounts: any = {
     pythFeed,
     switchboardFeed,
@@ -75,6 +77,8 @@ describe("vayoo_contracts", () => {
     console.log("Super User Key: ", superUser.publicKey.toString());
     console.log("Test User Key: ", testUser.publicKey.toString());
   }
+
+  let mode_to_test=0;//0 => endprice==startprice | 1=> endprice>upperbound | 2=> endprice< lowerbound
 
   before("Setting up environment", async () => {
     const txHash = await connection.requestAirdrop(
@@ -138,7 +142,8 @@ describe("vayoo_contracts", () => {
   });
 
   it("Initialize Contract Account/State - Switchboard", async () => {
-    const amplitude = new BN(30);
+    const amplitude = new BN(100_000);
+    
     let need_to_find_relevant_mint = true;
     let contractName = "sb-xv1";
     let [scontractMint, scontractMintBump] =
@@ -254,12 +259,19 @@ describe("vayoo_contracts", () => {
 
   it("Cannot Trigger Settle Mode - Maturity Not Reached", async () => {
     let msg = "";
-    await program.methods
-      .triggerSettleMode()
-      .accounts({ ...accounts })
-      .signers([superUser])
-      .rpc()
-      .catch((e) => (msg = e.error.errorCode.code));
+    const contractStateAccount = await program.account.contractState.fetch(
+      accounts.contractState
+    );
+    
+    if (true){
+      await program.methods
+        .triggerSettleMode()
+        .accounts({ ...accounts })
+        .signers([superUser])
+        .rpc()
+        .catch((e) => (msg = e.error.errorCode.code));}
+
+
     assert.ok(msg == "MaturityNotReached");
   });
 
@@ -434,10 +446,10 @@ describe("vayoo_contracts", () => {
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
+
     }
   });
 
@@ -478,14 +490,13 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
 
@@ -504,10 +515,18 @@ describe("vayoo_contracts", () => {
       testUser.publicKey,
       true
     );
+    const contractStateAccount = await program.account.contractState.fetch(
+      accounts.contractState
+    );
+    let ratio =
+    Number(contractStateAccount.globalCurrentLockedUsdc) /
+    Number(contractStateAccount.globalCurrentIssuedLcontract);
+
 
     let addLiquidityAmount = 10; // amount in lcontract nb
-    const initial_price = 15; // initial price of the pool
+    const initial_price = ratio/2; // initial price of the pool
     const spread = 0.01; // liquidity spread
+    console.log('Starting price pool',initial_price)
 
     const whirlpoolKey = await createWhirlpool(
       whirlpoolCtx,
@@ -994,14 +1013,13 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
 
@@ -1128,14 +1146,15 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+  
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
       console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
       console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
 
@@ -1391,12 +1410,39 @@ describe("vayoo_contracts", () => {
 
   it("Trigger Settle Mode - Maturity Reached", async () => {
     await sleep(10);
+    const contractStateAccountBefore = await program.account.contractState.fetch(
+      accounts.contractState
+    );
+    if (mode_to_test==0){
     await program.methods
       .triggerSettleMode()
       .accounts({ ...accounts })
       .signers([superUser])
       .rpc()
-      .catch((e) => console.log(e));
+      .catch((e) => console.log(e));}
+    
+
+    if (mode_to_test==1){
+      const end_price = Number(contractStateAccountBefore.startingPrice)-10_000_000;
+      console.log("Triggered with a price of ",end_price)
+      await program.methods
+        .adminTriggersSettleMode(new BN(end_price))
+        .accounts({ ...accounts })
+        .signers([superUser])
+        .rpc()
+        .catch((e) => console.log(e));}
+
+
+    if (mode_to_test==2){
+      
+      const end_price = Number(contractStateAccountBefore.startingPrice)+35_000_000;
+      console.log("Triggered with a price of ",end_price)
+      await program.methods
+        .adminTriggersSettleMode(new BN(end_price))
+        .accounts({ ...accounts })
+        .signers([superUser])
+        .rpc()
+        .catch((e) => console.log(e));}
     const contractStateAccount = await program.account.contractState.fetch(
       accounts.contractState
     );
@@ -1416,7 +1462,7 @@ describe("vayoo_contracts", () => {
     assert.ok(contractStateAccount.isSettling);
   });
 
-  it("Settle shorts and mm, by admin", async () => {
+  it("Settle mm, by admin", async () => {
     const vaultFreeCollateralAtaBefore = await getAccount(
       connection,
       accounts.vaultFreeCollateralAta
@@ -1506,16 +1552,18 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+    
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
+
+
+
 
   it("Settle longs, by user", async () => {
     const vaultFreeCollateralAtaBefore = await getAccount(
@@ -1573,14 +1621,13 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+  
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
 
@@ -1652,14 +1699,13 @@ describe("vayoo_contracts", () => {
       const contractStateAccount = await program.account.contractState.fetch(
         accounts.contractState
       );
-      console.log("LContract issued");
+      
       let ratio =
         Number(contractStateAccount.globalCurrentLockedUsdc) /
         Number(contractStateAccount.globalCurrentIssuedLcontract);
-      console.log(contractStateAccount.globalCurrentIssuedLcontract.toString());
-      console.log(contractStateAccount.globalCurrentLockedUsdc.toString());
-      console.log("Ratio");
-      console.log(ratio);
+      console.log("LContract issued : ",contractStateAccount.globalCurrentIssuedLcontract.toString());
+      console.log("Locked USDC : ",contractStateAccount.globalCurrentLockedUsdc.toString());
+      console.log("Ratio : ",ratio);
     }
   });
 

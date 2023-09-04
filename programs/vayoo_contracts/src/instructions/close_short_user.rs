@@ -11,12 +11,15 @@ pub fn handle(
     other_amount_threshold: u64,
     sqrt_price_limit: u128,
 ) -> Result<()> {
+
+    let contract_state_1=&ctx.accounts.contract_state;
     let _lcontract_bal_before = ctx.accounts.vault_lcontract_ata.amount;
 
     let token_account_a;
     let token_account_b;
 
     let user_state = &ctx.accounts.user_state;
+    require!(!contract_state_1.is_settling, ErrorCode::IsSettling);
 
     let signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
@@ -97,7 +100,7 @@ pub fn handle(
         .contract_state
         .limiting_amplitude
         .checked_mul(amount_bought_back)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     amount_to_free = amount_to_free.checked_sub(delta).unwrap();
 
     let cpi_accounts_transfer_to_free = Transfer {
@@ -134,13 +137,13 @@ pub fn handle(
 
     user_state.usdc_collateral_locked_as_user -= amount_bought_back
         .checked_mul(ctx.accounts.contract_state.limiting_amplitude)
-        .unwrap();
+        .unwrap().checked_div(contract_state_1.oracle_price_multiplier).unwrap();
     user_state.scontract_sold_as_user -= amount_bought_back;
     user_state.contract_position_net += amount_bought_back as i64;
 
     let amplitude = ctx.accounts.contract_state.limiting_amplitude;
     let contract_state = &mut ctx.accounts.contract_state;
-    contract_state.global_current_locked_usdc -= amount_bought_back.checked_mul(amplitude).unwrap();
+    contract_state.global_current_locked_usdc -= amount_bought_back.checked_mul(amplitude).unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
     contract_state.global_current_issued_lcontract -= amount_bought_back;
 
     //Making sure the user vault is well collateralized
@@ -148,14 +151,14 @@ pub fn handle(
     let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
-    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap();
+    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }
 
     //Making sure the whole platform is well collateralized
     let global_final_issued_contract = contract_state.global_current_issued_lcontract;
-    let global_needed_collateral = global_final_issued_contract.checked_mul(amplitude).unwrap();
+    let global_needed_collateral = global_final_issued_contract.checked_mul(amplitude).unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
     if global_needed_collateral > contract_state.global_current_locked_usdc {
         return err!(ErrorCode::PlatformUnhealthy);
     }

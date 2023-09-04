@@ -193,4 +193,15 @@ pub mod vayoo_contracts {
     pub fn mm_settle_long(ctx: Context<MmSettleLong>, amount: u64) -> Result<()> {
         mm_settle_long::handle(ctx, amount)
     }
+
+    /**
+     * Withdraw Collateral (USDC) from vault -> user
+     */
+     pub fn admin_sets_amplitude(ctx: Context<AdminSetsAmplitude>, amplitude_test: u64) -> Result<()> {
+        admin_sets_amplitude::handle(ctx, amplitude_test)
+    }
+
+    pub fn admin_triggers_settle_mode(ctx: Context<AdminTriggersSettleMode>, test_settlement_price: u64) -> Result<()> {
+        admin_triggers_settle_mode::handle(ctx, test_settlement_price)
+    }
 }

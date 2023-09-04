@@ -13,6 +13,8 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let contract_state = &ctx.accounts.contract_state;
 
+    require!(contract_state.is_settling, ErrorCode::NotSettling);
+
     let user_state_signer_seeds: &[&[&[u8]]] = &[&[
         user_state.contract_account.as_ref(),
         user_state.authority.as_ref(),
@@ -22,14 +24,10 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let local_pyt_multiplier = contract_state.oracle_price_multiplier;
 
     let adapted_contract_limiting_amplitude = contract_state
-        .limiting_amplitude
-        .checked_mul(contract_state.oracle_price_multiplier)
-        .unwrap();
+        .limiting_amplitude;
 
     let midrange = contract_state
         .limiting_amplitude
-        .checked_mul(contract_state.oracle_price_multiplier)
-        .unwrap()
         .checked_div(2)
         .unwrap();
 
@@ -78,7 +76,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         let mut loss_shorter = user_state
             .scontract_sold_as_user
             .checked_mul(contract_state.limiting_amplitude)
-            .unwrap();
+            .unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
         loss_shorter = loss_shorter.checked_sub(gains_shorter).unwrap();
         let cpi_accounts_transfer_from_locked = Transfer {
             from: ctx.accounts.vault_locked_collateral_ata.to_account_info(),
@@ -144,7 +142,8 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
         let mut loss_shorter = user_state
             .lcontract_minted_as_mm
             .checked_mul(contract_state.limiting_amplitude)
-            .unwrap();
+            .unwrap().checked_div(contract_state.oracle_price_multiplier).unwrap();
+
         loss_shorter = loss_shorter.checked_sub(gains_shorter).unwrap();
         let cpi_accounts_transfer_from_locked = Transfer {
             from: ctx.accounts.vault_locked_collateral_ata.to_account_info(),
@@ -230,7 +229,7 @@ pub fn handle(ctx: Context<AdminSettle>) -> Result<()> {
     let vault_final_locked_usdc = ctx.accounts.vault_locked_collateral_ata.to_account_info();
     let vault_final_scontract_value = token::accessor::amount(&vault_final_scontract)?;
     let vault_final_locked_usdc_value = token::accessor::amount(&vault_final_locked_usdc)?;
-    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap();
+    let needed_collateral = vault_final_scontract_value.checked_mul(amplitude).unwrap().checked_div(contract_state_m.oracle_price_multiplier).unwrap();
     if needed_collateral > vault_final_locked_usdc_value {
         return err!(ErrorCode::ShortLeaveUnhealthy);
     }

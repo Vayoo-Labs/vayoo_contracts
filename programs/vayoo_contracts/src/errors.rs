@@ -44,6 +44,8 @@ pub enum ErrorCode {
     PlatformUnhealthy, // 0x1783
     #[msg("Contract not in settling mode")]
     NotSettling, // 0x1784
+    #[msg("Contract is in settling mode")]
+    IsSettling, // 0x1784
     #[msg("Error in internal accounting")]
     ErrorAccounting, // 0x1785
     #[msg("LeakInFreeAccountUser")]
@@ -58,4 +60,6 @@ pub enum ErrorCode {
     ConfidenceIntervalExceeded, // 0x178a,
     #[msg("Invalid Feed")]
     InvalidOraclefeed, // 0x178b
+    #[msg("Cant be used in prod mode")]
+    NoTestInProd, // 0x178b
 }

@@ -56,15 +56,17 @@ pub fn handle(ctx: Context<TriggerSettleMode>) -> Result<()> {
             msg!("Switchboard, Settling at price: {}, expo: {}", price, expo);
 
 
-            let mut multiplicator_swithchboard = (expo) as u32;
-            let base = 10 as u32;
-            multiplicator_swithchboard = base.pow(multiplicator_swithchboard);
+            let  expo_switchboard = (expo) as u32;
+            let base = 10 as u128;
+            let multiplicator_swithchboard = base.pow(expo_switchboard);
             
-            let mut multiplicator_vayoo = 6 as u32;
-            let base = 10 as u32;
-            multiplicator_vayoo = base.pow(multiplicator_vayoo);
-            let mut real_price=(price) as u64;
-            real_price=real_price.checked_mul(multiplicator_vayoo as u64).unwrap().checked_div(multiplicator_swithchboard as u64).unwrap();
+            let expo_vayoo = contract_state.vayoo_precisions as u32;
+            let base = 10 as u128;
+            let multiplicator_vayoo = base.pow(expo_vayoo);
+            let mut real_price=(price) as u128;
+    
+      
+            real_price=real_price.checked_mul(multiplicator_vayoo as u128).unwrap().checked_div(multiplicator_swithchboard).unwrap();
 
 
             contract_state.ending_price = real_price as u64;

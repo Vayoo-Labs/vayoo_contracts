@@ -40,6 +40,7 @@ pub fn handle(
     contract_state.lcontract_mint = ctx.accounts.lcontract_mint.key();
     contract_state.scontract_mint = ctx.accounts.scontract_mint.key();
     contract_state.oracle_feed_type = feed_type;
+    contract_state.bands_shift = 0;
 
     if feed_type == FeedType::Pyth as u8 {
         // PYTH
@@ -58,6 +59,7 @@ pub fn handle(
         contract_state.oracle_feed_key = ctx.accounts.pyth_feed.key();
         contract_state.oracle_price_multiplier = multiplicator as u64;
         contract_state.starting_price = pyth_feed_price.price as u64;
+        contract_state.vayoo_precisions = multiplicator as u8;
     } else if feed_type == FeedType::Switchboard as u8 {
         // SWITCH_BOARD
         // check feed owner
@@ -69,27 +71,34 @@ pub fn handle(
         let switchboard_result = switchboard_feed.get_result()?;
         let expo = switchboard_result.scale;
         let price = switchboard_result.mantissa;
-        
+        msg!("Switchboard raw price, Initializing at {}", price);
+        msg!("Switchboard raw expo, Initializing at {}", expo);
 
         // check whether the feed has been updated in the last 60 seconds
         switchboard_feed
             .check_staleness(Clock::get().unwrap().unix_timestamp, 60)
             .map_err(|_| error!(ErrorCode::StaleFeed))?;
 
-        let mut multiplicator_swithchboard = (expo) as u32;
-        let base = 10 as u32;
-        multiplicator_swithchboard = base.pow(multiplicator_swithchboard);
-        
-        let mut multiplicator_vayoo = 6 as u32;
-        let base = 10 as u32;
-        multiplicator_vayoo = base.pow(multiplicator_vayoo);
-        let mut real_price=(price) as u64;
-        real_price=real_price.checked_mul(multiplicator_vayoo as u64).unwrap().checked_div(multiplicator_swithchboard as u64).unwrap();
+        let expo_switchboard = (expo) as u32;
+        let base = 10 as u128;
+        let multiplicator_swithchboard = base.pow(expo_switchboard);
+
+        let expo_vayoo = 6 as u32;
+        let base = 10 as u128;
+        let multiplicator_vayoo = base.pow(expo_vayoo);
+        let mut real_price = (price) as u128;
+
+        real_price = real_price
+            .checked_mul(multiplicator_vayoo as u128)
+            .unwrap()
+            .checked_div(multiplicator_swithchboard)
+            .unwrap();
         msg!("Switchboard, Initializing at {}", real_price);
 
         contract_state.oracle_feed_key = ctx.accounts.switchboard_feed.key();
         contract_state.oracle_price_multiplier = multiplicator_vayoo as u64;
         contract_state.starting_price = real_price as u64;
+        contract_state.vayoo_precisions = expo_vayoo as u8;
     }
 
     contract_state.limiting_amplitude = limiting_amplitude;
@@ -101,6 +110,16 @@ pub fn handle(
     contract_state.current_tvl_underlying = 0;
     contract_state.global_current_locked_usdc = 0;
     contract_state.global_current_issued_lcontract = 0;
+
+    #[cfg(feature = "dev")]
+    {
+        contract_state.test_mode = 1;
+    }
+
+    #[cfg(feature = "prod")]
+    {
+        contract_state.test_mode = 0; 
+    }
 
     Ok(())
 }
