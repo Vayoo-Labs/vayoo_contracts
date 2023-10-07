@@ -184,7 +184,7 @@ pub mod vayoo_contracts {
         user_settle_long::handle(ctx)
     }
 
-    /**s
+    /**
      * MM settle long
      *
      * Can be called by MM only
