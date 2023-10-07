@@ -195,6 +195,14 @@ pub mod vayoo_contracts {
     }
 
     /**
+     * Emergency withdraw
+     *
+     */
+    pub fn emergency_withdraw(ctx: Context<EmergencyWithdraw>) -> Result<()> {
+        emergency_withdraw::handle(ctx)
+    }
+
+    /**
      * Withdraw Collateral (USDC) from vault -> user
      */
      pub fn admin_sets_amplitude(ctx: Context<AdminSetsAmplitude>, amplitude_test: u64) -> Result<()> {
