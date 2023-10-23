@@ -1,5 +1,5 @@
 # vayoo_contracts
 
-yarn
+Build dependencies: yarn
 
-anchor test
+Test: anchor test
